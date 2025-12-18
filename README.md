@@ -4,7 +4,9 @@ The AgWise Fertilizer Recommendation Module generates site-specific nutrient and
 
 
 AgWise fertilizer recommendation generation options
-i-Machine learning,
+
+i-Machine learning
+
 Machine learning models are trained using crop fertilizer response datasets and integrated with geospatial data layers to capture spatial variability. The trained models are then used to:
 •	Predict yield responses across nutrient application rates,
 •	Identify optimal fertilizer rates that maximize agronomic efficiency, and
@@ -13,7 +15,7 @@ Machine learning models are trained using crop fertilizer response datasets and 
 https://github.com/CGIAR-AgWise/agwise-fertilizer/tree/main/generic/ML
 
 
-ii-Machine learning and QUEFTS, 
+ii-Machine learning and QUEFTS
 
 This option integrates three complementary modelling components (Reverse-QUEFTS, Machine Learning, and Forward-QUEFTS), to generate spatially optimized, crop- and site-specific fertilizer recommendations.
 The workflow consists of the following steps:
@@ -26,7 +28,8 @@ The workflow consists of the following steps:
 https://github.com/CGIAR-AgWise/agwise-fertilizer/tree/main/generic/QUEFT_ML
 
 
-iii-Crop model.
+iii-Crop model
+
 Process-based crop models to generate site specific fertilizer recommendations. The option is particularly useful when there is limited or no crop fertilizer response data. A spatialized crop model (APSIM, DSSAT), is utilized to undertake spatial simulations. A series of nutrient (N, P and K) rates, range of different planting dates and generic varieties, are used as inputs. A response curve is determined for each generic variety and planting time for each pixel to determine the fertilizer recommendations. 
 
 This option uses process-based crop models to generate site-specific fertilizer recommendations and is particularly useful in contexts where fertilizer response trial data are limited or unavailable.
