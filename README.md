@@ -14,6 +14,7 @@ XGBoost, and deep learning models) and selects the best-performing model. H2O al
 <img width="219" height="277" alt="image" src="https://github.com/user-attachments/assets/694e5be7-55a3-466b-97fb-50c81d80ef1b" />
 
 a) Model training
+
 https://github.com/CGIAR-AgWise/agwise-fertilizer/tree/main/generic/ML/ML_training
 
 This R script is an end-to-end automated machine learning pipeline built on H2O AutoML for tabular regression problems. 
@@ -23,6 +24,7 @@ This R script is an end-to-end automated machine learning pipeline built on H2O 
 •	Finally generates model diagnostics and interpretability outputs (observed vs predicted, variable importance, PDP/ICE, and SHAP), saving results generated from the best and tuned model.
 
 b) Prediction
+
 https://github.com/CGIAR-AgWise/agwise-fertilizer/blob/main/generic/ML/Prediction/prepare_PredictionGrid.R
 
 The trained model will then be used to predict yieldon a new spatial desired area.  So, this script does the preparation of the prediction grid, stacking the spatial covariates with th three climate scenarios;normal, 
@@ -34,8 +36,10 @@ This script predicts on the spatial area using different nutrient range extracte
 above-normal weather scenario and below normal scenario.
 
 C) Optimization
+The optimization involves in selecting the appropriate fertilizer rates based on interest and target function.
+
 1. Maximum yield optimization
-2. 
+
 https://github.com/CGIAR-AgWise/agwise-fertilizer/blob/main/generic/ML/Optimization/optimize_yield.R
 
 This script performs **yield optimization** by identifying fertilizer application combinations that achieve **maximum crop yield** within a specified tolerance. For each scenario and location, it evaluates predicted yields across nitrogen–phosphorus (N–P) rate combinations, selects those within 2% (default) of the maximum observed yield, and chooses the lowest N and P rates among them. The function processes all scenarios in parallel structure, aggregates results across locations, and saves the final maximum-yield recommendations as an RDS file for downstream analysis and advisory generation.
