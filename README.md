@@ -8,7 +8,7 @@ https://github.com/CGIAR-AgWise/agwise-fertilizer/tree/main/generic/ML
 
 i-Machine learning
 
-The machine learning framework generates user advisories using only machine learning algorithms. After spatial soil, topography, and climate data are obtained from the data sourcing module, 
+The machine learning framework generates user advisories using machine learning algorithms only. After spatial soil, topography, and climate data are obtained from the data sourcing module, 
 all datasets are compiled and processed into a model-ready training dataset. We use the H2O AutoML framework, which automatically trains multiple algorithms (e.g., GLM, GBM, Random Forest, 
 XGBoost, and deep learning models) and selects the best-performing model. H2O also provides a parallelized training environment, which is essential for efficiently handling large datasets.
 
@@ -21,7 +21,7 @@ https://github.com/CGIAR-AgWise/agwise-fertilizer/tree/main/generic/ML/ML_traini
 This R script is an end-to-end automated machine learning pipeline built on H2O AutoML for tabular regression problems. 
 •	It reads data from common formats (CSV/Excel/RDS/RData), cleans column names.
 •	It then trains an AutoML model , evaluates performance using RMSE/MAE/R², and performs algorithm-specific hyperparameter tuning via grid search. 
-•	Next, it ranks features by variable importance, retrains models using top predictor subsets to find better-performing model with reduced dimesionality.
+•	Next, it ranks features by variable importance, retrains models using top predictor subsets to find better-performing model with reduced dimensionality.
 •	Finally generates model diagnostics and interpretability outputs (observed vs predicted, variable importance, PDP/ICE, and SHAP), saving results generated from the best and tuned model.
 
 b) Prediction
