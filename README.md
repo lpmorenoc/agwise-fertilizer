@@ -7,24 +7,22 @@ AgWise fertilizer recommendation generation options
 https://github.com/CGIAR-AgWise/agwise-fertilizer/tree/main/generic/ML
 
 i-Machine learning
+The machine learning framework generates user advisories using only machine learning algorithms. After spatial soil, topography, and climate data are obtained from the data sourcing module, 
+all datasets are compiled and processed into a model-ready training dataset. We use the H2O AutoML framework, which automatically trains multiple algorithms (e.g., GLM, GBM, Random Forest, 
+XGBoost, and deep learning models) and selects the best-performing model. H2O also provides a parallelized training environment, which is essential for efficiently handling large datasets.
 
-├<img width="215" height="285" alt="image" src="https://github.com/user-attachments/assets/96e0cc19-e901-41b4-893f-d2a9b3dd1cb5" />
+<img width="219" height="277" alt="image" src="https://github.com/user-attachments/assets/694e5be7-55a3-466b-97fb-50c81d80ef1b" />
 
-
-The machine learning framework involves only machine learning algorithms to give advisories for the user. Intitially, after getting spatial soil, topography and climate data from data sourcing module. 
-After compiling all the data together using unique IDs, it will be ready for model training. 
-We used H2o autoML framework which trains many algorithms (GLMs, GBMs, Random Forests, XGBoost, deep nets, etc.) and chooses the best one. It also serves a parallelized framework which is also
-very essential for huge datasets.
 https://github.com/CGIAR-AgWise/agwise-fertilizer/tree/main/generic/ML/ML_training
-This script This R script is an end-to-end automated machine learning pipeline built on H2O AutoML for tabular regression problems. 
+
+This R script is an end-to-end automated machine learning pipeline built on H2O AutoML for tabular regression problems. 
 •	It reads data from common formats (CSV/Excel/RDS/RData), cleans column names.
 •	It then trains an AutoML model , evaluates performance using RMSE/MAE/R², and performs algorithm-specific hyperparameter tuning via grid search. 
 •	Next, it ranks features by variable importance, retrains models using top predictor subsets to find better-performing model with reduced dimesionality.
 •	Finally generates model diagnostics and interpretability outputs (observed vs predicted, variable importance, PDP/ICE, and SHAP), saving results generated from the best and tuned model.
 
 https://github.com/CGIAR-AgWise/agwise-fertilizer/blob/main/generic/ML/Prediction/prepare_PredictionGrid.R
-
-
+The trained model will then be used to predict yieldon a new spatial desired area.  So, this script does the preparation of the prediction grid, stacking the spatial covariates with th three climate scenarios;normal, above-normal and below-normal.
 
 ii-Machine learning and QUEFTS
 
