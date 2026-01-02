@@ -6,8 +6,10 @@ The AgWise Fertilizer Recommendation Module generates site-specific nutrient and
 AgWise fertilizer recommendation generation options
 
 i-Machine learning
-
-Machine learning models are trained using crop fertilizer response datasets and integrated with geospatial data layers to capture spatial variability. The trained models are then used to:
+The machine learning framework involves machine learning akgorithms only to give advisories  for the user. Intitially, after getting data sourced from data sourcung models. 
+The soil, topography and climate data is achieved from the data sourcing module . After comiling all the data together using unique IDs, it will be ready for model training. 
+We used H2o autoML framework which trains many algorithms (GLMs, GBMs, Random Forests, XGBoost, deep nets, etc.) and chooses the best one. It also serves a parallelized framework which is also
+very essential for huge datasets.
 •	Predict yield responses across nutrient application rates,
 •	Identify optimal fertilizer rates that maximize agronomic efficiency, and
 •	Support recommendations aligned with user-defined yield targets.
