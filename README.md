@@ -7,20 +7,10 @@ AgWise fertilizer recommendation generation options
 https://github.com/CGIAR-AgWise/agwise-fertilizer/tree/main/generic/ML
 
 i-Machine learning
-├─ ML_training/
-│  ├─ automated_ml_pipeline.R
-│
-├─ prediction/
-│  ├─ preparePrediction_Grid.R
-│  ├─ prediction.R
-│
-├─ optimization/
-│  ├─ calculate_NPUE.R
-│  ├─ optimize_efficiency.R
-│  ├─ optimize_marginal.R
-│  ├─ optimize_profit.R
-│  ├─ optimize_yield.R
-│  ├─ Main_optimization.R
+
+├<img width="215" height="285" alt="image" src="https://github.com/user-attachments/assets/96e0cc19-e901-41b4-893f-d2a9b3dd1cb5" />
+
+
 The machine learning framework involves only machine learning algorithms to give advisories for the user. Intitially, after getting spatial soil, topography and climate data from data sourcing module. 
 After compiling all the data together using unique IDs, it will be ready for model training. 
 We used H2o autoML framework which trains many algorithms (GLMs, GBMs, Random Forests, XGBoost, deep nets, etc.) and chooses the best one. It also serves a parallelized framework which is also
