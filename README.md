@@ -10,6 +10,11 @@ The machine learning framework involves machine learning akgorithms only to give
 The soil, topography and climate data is achieved from the data sourcing module . After comiling all the data together using unique IDs, it will be ready for model training. 
 We used H2o autoML framework which trains many algorithms (GLMs, GBMs, Random Forests, XGBoost, deep nets, etc.) and chooses the best one. It also serves a parallelized framework which is also
 very essential for huge datasets.
+https://github.com/CGIAR-AgWise/agwise-fertilizer/tree/main/generic/ML/ML_training
+This script This R script is an end-to-end automated machine learning pipeline built on H2O AutoML for tabular regression problems. It reads data from common formats (CSV/Excel/RDS/RData), cleans column names.
+It then trains an AutoML model , evaluates performance using RMSE/MAE/R², and performs algorithm-specific hyperparameter tuning via grid search. Next, it ranks features by variable importance, retrains models using top predictor subsets
+to find better-performing model with reduced dimesionality, and finally generates model diagnostics and interpretability outputs (observed vs predicted, variable importance, PDP/ICE, and SHAP), saving plots (PNGs) and
+a combined PDF report plus CSV tables to the specified output folders.
 •	Predict yield responses across nutrient application rates,
 •	Identify optimal fertilizer rates that maximize agronomic efficiency, and
 •	Support recommendations aligned with user-defined yield targets.
