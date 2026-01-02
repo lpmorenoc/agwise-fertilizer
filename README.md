@@ -5,6 +5,7 @@ The AgWise Fertilizer Recommendation Module generates site-specific nutrient and
 
 AgWise fertilizer recommendation generation options
 https://github.com/CGIAR-AgWise/agwise-fertilizer/tree/main/generic/ML
+
 i-Machine learning
 ├─ ML_training/
 │  ├─ automated_ml_pipeline.R
