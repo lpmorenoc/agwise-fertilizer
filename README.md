@@ -27,7 +27,7 @@ b) Prediction
 
 https://github.com/CGIAR-AgWise/agwise-fertilizer/blob/main/generic/ML/Prediction/prepare_PredictionGrid.R
 
-The trained model will then be used to predict yieldon a new spatial desired area.  So, this script does the preparation of the prediction grid, stacking the spatial covariates with th three climate scenarios;normal, 
+The trained model will then be used to predict yieldon a new spatial desired area.  So, this script does the preparation of the prediction grid, stacking the spatial covariates withih three climate scenarios;normal, 
 above-normal and below-normal.
 
 https://github.com/CGIAR-AgWise/agwise-fertilizer/blob/main/generic/ML/Prediction/prediction.R
@@ -36,7 +36,7 @@ This script predicts on the spatial area using different nutrient range extracte
 above-normal weather scenario and below normal scenario.
 
 C) Optimization
-The optimization involves in selecting the appropriate fertilizer rates based on interest and target function.
+The optimization involves in selecting the appropriate fertilizer rates based on interest and target for optimization.
 
 1. Maximum yield optimization
 
@@ -60,6 +60,7 @@ This script performs marginal economic optimization of fertilizer recommendation
 4. Fertilizer Use efficiency
 
 https://github.com/CGIAR-AgWise/agwise-fertilizer/blob/main/generic/ML/Optimization/optimize_efficiency.R
+
 The script calculates nitrogen and phosphorous use efficiency and selects from among top efficiencies, minimum N and P and maximum yield for each location.
 
 The main optimization script accepts and reads predicted data and runs optimization scripts of interest.
