@@ -7,6 +7,7 @@ AgWise fertilizer recommendation generation options
 https://github.com/CGIAR-AgWise/agwise-fertilizer/tree/main/generic/ML
 
 i-Machine learning
+
 The machine learning framework generates user advisories using only machine learning algorithms. After spatial soil, topography, and climate data are obtained from the data sourcing module, 
 all datasets are compiled and processed into a model-ready training dataset. We use the H2O AutoML framework, which automatically trains multiple algorithms (e.g., GLM, GBM, Random Forest, 
 XGBoost, and deep learning models) and selects the best-performing model. H2O also provides a parallelized training environment, which is essential for efficiently handling large datasets.
