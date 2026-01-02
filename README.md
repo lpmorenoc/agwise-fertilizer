@@ -34,6 +34,31 @@ This script predicts on the spatial area using different nutrient range extracte
 above-normal weather scenario and below normal scenario.
 
 C) Optimization
+1. Maximum yield optimization
+2. 
+https://github.com/CGIAR-AgWise/agwise-fertilizer/blob/main/generic/ML/Optimization/optimize_yield.R
+
+This script performs **yield optimization** by identifying fertilizer application combinations that achieve **maximum crop yield** within a specified tolerance. For each scenario and location, it evaluates predicted yields across nitrogen–phosphorus (N–P) rate combinations, selects those within 2% (default) of the maximum observed yield, and chooses the lowest N and P rates among them. The function processes all scenarios in parallel structure, aggregates results across locations, and saves the final maximum-yield recommendations as an RDS file for downstream analysis and advisory generation.
+
+2. Maximum profit optimization
+
+https://github.com/CGIAR-AgWise/agwise-fertilizer/blob/main/generic/ML/Optimization/optimize_profit.R
+
+This function performs maximum profit optimization across all scenarios and locations It calculates revenue, fertilizer cost, and profit using user-defined crop price and input costs. 
+For each location, it selects the option with profit within a specified tolerance (default 2%) of the maximum profit, breaking ties by choosing the lowest N and P rates.
+
+3. Marginal economic optimization
+
+https://github.com/CGIAR-AgWise/agwise-fertilizer/blob/main/generic/ML/Optimization/optimize_marginal.R
+
+This script performs marginal economic optimization of fertilizer recommendations using the rule MR ≥ 1 (marginal return at least equals marginal cost). For each scenario (below, normal, above) and each location, it computes marginal revenue (DMR) and total cost (DTC) based on crop price and fertilizer costs. It then estimates the marginal ratio MR = ΔDMR / ΔDTC along increasing cost levels and selects the last rate where MR ≥ 1 (or the closest-to-1 option when none meet the threshold). 
+
+4. Fertilizer Use efficiency
+
+https://github.com/CGIAR-AgWise/agwise-fertilizer/blob/main/generic/ML/Optimization/optimize_efficiency.R
+The script calculates nitrogen and phosphorous use efficiency and selects from among top efficiencies, minimum N and P and maximum yield for each location.
+
+The main optimization script accepts and reads predicted data and runs optimization scripts of interest.
 
 ii-Machine learning and QUEFTS
 
