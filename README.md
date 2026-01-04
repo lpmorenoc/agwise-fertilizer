@@ -67,7 +67,8 @@ The script calculates nitrogen and phosphorous use efficiency and selects from a
 The main optimization script accepts and reads predicted data and runs optimization scripts of interest.
 
 ii-Machine learning and QUEFTS
-This approach integrates three complementary modeling frameworks Machine Learning, Reverse-QUEFTS, and Forward-QUEFTS to derive spatially optimized, crop and site-specific fertilizer recommendations. This integration provides a seamless transition from raw experimental data to high-resolution fertilizer maps. It hinges on the idea that if an ML model can accurately predict how yield responds to "no-input" and "high-input" scenarios across a landscape, a mechanistic model can then "reverse-engineer" those responses to identify the specific nutrient supply of the soil. 
+
+This approach integrates three complementary modeling frameworks Machine Learning, Reverse-QUEFTS, and Forward-QUEFTS to derive spatially optimized, crop and site-specific fertilizer recommendations. It hinges on the idea that if an ML model can accurately predict how yield responds to "no-input" and "high-input" scenarios across a landscape, a mechanistic model can then "reverse-engineer" those responses to identify the specific nutrient supply of the soil. 
 
 1. Machine Learning Generation of Yield Surfaces 
 
@@ -75,14 +76,12 @@ The pipeline begins by training an ensemble of ML models (e.g. Random Forest, Gr
 
 2. Reverse-QUEFTS (The Inversion Logic) 
 
-The core of this approach lies in reverse quefts model. Here, the pipeline performs a pixel-wise inversion. For every cell in the raster grid, the system asks: "What combination of Indigenous Nitrogen, Phosphorus, and Potassium (INS, IPS, IKS) would cause the QUEFTS model to produce the exact Y0 and Ymax predicted by the ML model?". The approach uses a constraint-Based Optimizationt that minimizes a loss function that compares the QUEFTS-simulated yield against the ML-predicted yield. It seeks a non-negative supply vector (INS, IPS, IKS) that fits both the "hunger" (control) and the "potential" (high input) observations. It applies regularization and stability by applying lambda penalty. This regularization pulls the solution toward a "prior" nutrient supply vector derived from regional soil characteristics, preventing unrealistic spatial spikes and ensuring biophysical plausibility. 
-
+The core of this approach lies in reverse quefts model. Here, the pipeline performs a pixel-wise inversion. For every cell in the raster grid, the system asks: "What combination of Indigenous Nitrogen, Phosphorus, and Potassium (INS, IPS, IKS) would cause the QUEFTS model to produce the exact Y0 and Ymax predicted by the ML model?". 
 The output of this stage consists of three key GeoTIFFs: INS_rev.tif, IPS_rev.tif, and IKS_rev.tif. These maps represent the "decoded fertility" of the soil, grounded in both the ML model's spatial intelligence and the QUEFTS model's chemical logic. 
 
-3. Forward-QUEFTS and NUE Optimization 
-
+3. Forward-QUEFTS and NUE Optimization
+    
 With the soil supply surfaces established, the system shifts to the Forward-QUEFTS engine to prescribe actual fertilizer rates. 
-
 Dynamic Target Yield Selection: The "Attainable Yield" (Ytarget) is not a static number. It is dynamically constructed by taking the 90th percentile of the maximum yields observed in the regional dataset. This creates a realistic "ambition ceiling" that accounts for localized climatic constraints while remaining agronomically challenging. 
 
 Iterative Nutrient Use Efficiency (NUE) Scoring:The optimizer does not simply aim for the highest possible yield, which often requires excessive fertilizer. Instead, it iterates through a grid of potential yield scenarios (from 60% to 110% of Ytarget) to find the "Sweet Spot" of efficiency. For each pixel, it calculates: 
@@ -95,12 +94,12 @@ The Weighted Score: The system selects the rate (N, P, K) that maximizes the fol
 
 4. Computational Scalability and National Implementation 
 
-Performing these optimizations for every pixel at a national scale (e.g., 250m resolution) involves millions of individual simulations. The pipeline is designed for high-performance execution: 
-Standardized Outputs: The final stage exports a suite of GeoTIFF layers ready for integration into digital advisory apps: 
+Performing these optimizations for every pixel at a national scale (e.g., 250m resolution) involves millions of individual simulations. The pipeline is designed for high-performance execution. 
+The final stage exports a suite of GeoTIFF layers ready for integration into digital advisory apps: 
 
-        Recommended N, P, K: Optimized application rates per pixel. 
-        Expected Yield: The predicted outcome of the recommendation. 
-        Limiting Nutrient Map: Identifying whether N, P, or K is the primary bottleneck for that specific field. 
+- Recommended N, P, K: Optimized application rates per pixel. 
+- Expected Yield: The predicted outcome of the recommendation. 
+- Limiting Nutrient Map: Identifying whether N, P, or K is the primary bottleneck for that specific field. 
 
 This "Hybrid Behavioral Inference" workflow represents the frontier of site-specific management. By using Machine Learning to capture the broad environmental patterns of yield and QUEFTS to resolve the underlying nutrient mechanics, the system provides recommendations that are both spatially precise and agronomically sound. It transforms "big data" into "smart advice," empowering digital advisory systems to deliver tailored solutions for every farmer. 
 
