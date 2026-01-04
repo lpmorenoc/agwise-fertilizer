@@ -67,14 +67,42 @@ The script calculates nitrogen and phosphorous use efficiency and selects from a
 The main optimization script accepts and reads predicted data and runs optimization scripts of interest.
 
 ii-Machine learning and QUEFTS
+This approach integrates three complementary modeling frameworks Machine Learning, Reverse-QUEFTS, and Forward-QUEFTS to derive spatially optimized, crop and site-specific fertilizer recommendations. This integration provides a seamless transition from raw experimental data to high-resolution fertilizer maps. It hinges on the idea that if an ML model can accurately predict how yield responds to "no-input" and "high-input" scenarios across a landscape, a mechanistic model can then "reverse-engineer" those responses to identify the specific nutrient supply of the soil. 
 
-This option integrates three complementary modelling components (Reverse-QUEFTS, Machine Learning, and Forward-QUEFTS), to generate spatially optimized, crop- and site-specific fertilizer recommendations.
-The workflow consists of the following steps:
-1.	Reverse-QUEFTS Computation: Soil nutrient supply indices for nitrogen, phosphorus, and potassium (INS, IPS, IKS) are derived for experimental sites using observed yield and nutrient input data.
-2.	Machine learning training: ML models are trained to predict nutrient supply indices (INS, IPS, IKS) using environmental and soil covariates.
-3.	Spatial prediction: The trained models are applied to spatial grids to generate continuous maps of nutrient supply indices across the landscape.
-4.	Forward-QUEFTS simulation: The QUEFTS forward model computes nutrient requirements for each spatial unit to achieve a range of attainable yield levels.
-5.	Optimization: The model iterates across yield targets to identify the yield–nutrient combination that maximizes agronomic efficiency, yield target or nutrient use efficiency (NUE).
+1. Machine Learning Generation of Yield Surfaces 
+
+The pipeline begins by training an ensemble of ML models (e.g. Random Forest, Gradient Boosted Trees, or XGBoost) on multi-location trial data to generate two critical spatial layers (yield surfaces): Control Yield Surface (Yo): Predicting yield where N=P=K=0 and High-Input Yield Surface (Ymax): Predicting yield under non-limiting fertilizer conditions (e.g., high NPK levels). By generating these surfaces first, we create a spatially continuous dataset of "modelled behaviours." These surfaces bridge the gap between sparse experimental points and a continuous landscape, serving as the primary input for the mechanistic solver. 
+
+2. Reverse-QUEFTS (The Inversion Logic) 
+
+The core of this approach lies in reverse quefts model. Here, the pipeline performs a pixel-wise inversion. For every cell in the raster grid, the system asks: "What combination of Indigenous Nitrogen, Phosphorus, and Potassium (INS, IPS, IKS) would cause the QUEFTS model to produce the exact Y0 and Ymax predicted by the ML model?". The approach uses a constraint-Based Optimizationt that minimizes a loss function that compares the QUEFTS-simulated yield against the ML-predicted yield. It seeks a non-negative supply vector (INS, IPS, IKS) that fits both the "hunger" (control) and the "potential" (high input) observations. It applies regularization and stability by applying lambda penalty. This regularization pulls the solution toward a "prior" nutrient supply vector derived from regional soil characteristics, preventing unrealistic spatial spikes and ensuring biophysical plausibility. 
+
+The output of this stage consists of three key GeoTIFFs: INS_rev.tif, IPS_rev.tif, and IKS_rev.tif. These maps represent the "decoded fertility" of the soil, grounded in both the ML model's spatial intelligence and the QUEFTS model's chemical logic. 
+
+3. Forward-QUEFTS and NUE Optimization 
+
+With the soil supply surfaces established, the system shifts to the Forward-QUEFTS engine to prescribe actual fertilizer rates. 
+
+Dynamic Target Yield Selection: The "Attainable Yield" (Ytarget) is not a static number. It is dynamically constructed by taking the 90th percentile of the maximum yields observed in the regional dataset. This creates a realistic "ambition ceiling" that accounts for localized climatic constraints while remaining agronomically challenging. 
+
+Iterative Nutrient Use Efficiency (NUE) Scoring:The optimizer does not simply aim for the highest possible yield, which often requires excessive fertilizer. Instead, it iterates through a grid of potential yield scenarios (from 60% to 110% of Ytarget) to find the "Sweet Spot" of efficiency. For each pixel, it calculates: 
+
+Yield Gain (∆Y): Yfertilized - Y0. 
+
+Agronomic Efficiency (AE): The ratio of yield gain to the amount of nutrient applied. 
+
+The Weighted Score: The system selects the rate (N, P, K) that maximizes the following objective function: Score = Yield x (NUEα). The α parameter allows for strategic tuning: a higher α prioritizes sustainability and efficiency (saving fertilizer), while a lower α prioritizes total food production (maximizing yield). 
+
+4. Computational Scalability and National Implementation 
+
+Performing these optimizations for every pixel at a national scale (e.g., 250m resolution) involves millions of individual simulations. The pipeline is designed for high-performance execution: 
+Standardized Outputs: The final stage exports a suite of GeoTIFF layers ready for integration into digital advisory apps: 
+
+        Recommended N, P, K: Optimized application rates per pixel. 
+        Expected Yield: The predicted outcome of the recommendation. 
+        Limiting Nutrient Map: Identifying whether N, P, or K is the primary bottleneck for that specific field. 
+
+This "Hybrid Behavioral Inference" workflow represents the frontier of site-specific management. By using Machine Learning to capture the broad environmental patterns of yield and QUEFTS to resolve the underlying nutrient mechanics, the system provides recommendations that are both spatially precise and agronomically sound. It transforms "big data" into "smart advice," empowering digital advisory systems to deliver tailored solutions for every farmer. 
 
 https://github.com/CGIAR-AgWise/agwise-fertilizer/tree/main/generic/QUEFT_ML
 
