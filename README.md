@@ -21,23 +21,23 @@ https://github.com/CGIAR-AgWise/agwise-fertilizer/tree/main/generic/ML/ML_traini
 This R script is an end-to-end automated machine learning pipeline built on H2O AutoML for tabular regression problems. 
 •	It reads data from common formats (CSV/Excel/RDS/RData), cleans column names.
 •	It then trains an AutoML model , evaluates performance using RMSE/MAE/R², and performs algorithm-specific hyperparameter tuning via grid search. 
-•	Next, it ranks features by variable importance, retrains models using top predictor subsets to find better-performing model with reduced dimensionality.
+•	Next, it ranks features by variable importance, retrains models using top predictor subsets to find the better-performing model with reduced dimensionality.
 •	Finally generates model diagnostics and interpretability outputs (observed vs predicted, variable importance, PDP/ICE, and SHAP), saving results generated from the best and tuned model.
 
 b) Prediction
 
 https://github.com/CGIAR-AgWise/agwise-fertilizer/blob/main/generic/ML/Prediction/prepare_PredictionGrid.R
 
-The trained model will then be used to predict yieldon a new spatial desired area.  So, this script does the preparation of the prediction grid, stacking the spatial covariates withih three climate scenarios;normal, 
+The trained model will then be used to predict yield on a new spatial desired area.  So, this script does the preparation of the prediction grid, stacking the spatial covariates within three climate scenarios;normal, 
 above-normal and below-normal.
 
 https://github.com/CGIAR-AgWise/agwise-fertilizer/blob/main/generic/ML/Prediction/prediction.R
 
-This script predicts on the spatial area using different nutrient range extracted from the trial data. The prediction will result on three huge datasets which is the spatial prediction of yield on normal weather scenario,
+This script predicts on the spatial area using different nutrient range extracted from the trial data. The prediction will result in three huge datasets which are the spatial prediction of yield on normal weather scenario,
 above-normal weather scenario and below normal scenario.
 
 C) Optimization
-The optimization involves in selecting the appropriate fertilizer rates based on interest and target for optimization.
+The optimization involves selecting the appropriate fertilizer rates based on interest and target for optimization.
 
 1. Maximum yield optimization
 
@@ -49,7 +49,7 @@ This script performs **yield optimization** by identifying fertilizer applicatio
 
 https://github.com/CGIAR-AgWise/agwise-fertilizer/blob/main/generic/ML/Optimization/optimize_profit.R
 
-This function performs maximum profit optimization across all scenarios and locations It calculates revenue, fertilizer cost, and profit using user-defined crop price and input costs. 
+This function performs maximum profit optimization across all scenarios and locations. It calculates revenue, fertilizer cost, and profit using user-defined crop price and input costs. 
 For each location, it selects the option with profit within a specified tolerance (default 2%) of the maximum profit, breaking ties by choosing the lowest N and P rates.
 
 3. Marginal economic optimization
@@ -68,7 +68,7 @@ The main optimization script accepts and reads predicted data and runs optimizat
 
 ii-Machine learning and QUEFTS
 
-This approach integrates three complementary modeling frameworks Machine Learning, Reverse-QUEFTS, and Forward-QUEFTS to derive spatially optimized, crop and site-specific fertilizer recommendations. It hinges on the idea that if an ML model can accurately predict how yield responds to "no-input" and "high-input" scenarios across a landscape, a mechanistic model can then "reverse-engineer" those responses to identify the specific nutrient supply of the soil. 
+This approach integrates three complementary modeling frameworks; Machine Learning, Reverse-QUEFTS, and Forward-QUEFTS to derive spatially optimized, crop and site-specific fertilizer recommendations. It hinges on the idea that if an ML model can accurately predict how yield responds to "no-input" and "high-input" scenarios across a landscape, a mechanistic model can then "reverse-engineer" those responses to identify the specific nutrient supply of the soil. 
 
 1. Machine Learning Generation of Yield Surfaces 
 
