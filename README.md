@@ -28,7 +28,7 @@ b) Prediction
 
 https://github.com/CGIAR-AgWise/agwise-fertilizer/blob/main/generic/ML/Prediction/prepare_PredictionGrid.R
 
-The trained model will then be used to predict yield on a new spatial desired area.  So, this script does the preparation of the prediction grid, stacking the spatial covariates within three climate scenarios;normal, 
+The trained model will then be used to predict yield on a new spatial desired area.  So, this script does the preparation of the prediction grid, stacking the spatial covariates within three climate scenarios; normal, 
 above-normal and below-normal.
 
 https://github.com/CGIAR-AgWise/agwise-fertilizer/blob/main/generic/ML/Prediction/prediction.R
@@ -36,7 +36,8 @@ https://github.com/CGIAR-AgWise/agwise-fertilizer/blob/main/generic/ML/Predictio
 This script predicts on the spatial area using different nutrient range extracted from the trial data. The prediction will result in three huge datasets which are the spatial prediction of yield on normal weather scenario,
 above-normal weather scenario and below normal scenario.
 
-C) Optimization
+c) Optimization
+
 The optimization involves selecting the appropriate fertilizer rates based on interest and target for optimization.
 
 1. Maximum yield optimization
