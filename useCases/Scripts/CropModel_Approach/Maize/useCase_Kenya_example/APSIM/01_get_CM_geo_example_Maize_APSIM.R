@@ -10,8 +10,8 @@ level2 <- NA
 Depth <- c(5, 15, 30, 60, 100, 200)
 AOI <- TRUE
 season <- 1
-country <- "Rwanda"
-useCaseName <- "RAB"
+country <- "Kenya"
+useCaseName <- "example"
 Crop <- "Maize"
 
 varietyid <- "Early"
@@ -26,9 +26,9 @@ varietyid <- "Early"
 countryShp <- geodata::gadm(country, level = 2, path='.')
 prov <- unique(countryShp$NAME_1)
 
-source("~/agwise-cropping-innovation/Scripts/APSIM/generic/01_readGeo_CM_zone_APSIM.R")
+source("~/patricia_repos/agwise-fertilizer/Scripts/generic/APSIM/01_readGeo_CM_zone_APSIM.R")
 
-path.to.extdata <- paste("~/agwise-cropping-innovation/Data/useCase_", 
+path.to.extdata <- paste("~/patricia_repos/agwise-fertilizer/Data/useCase_", 
                                             country, "_",useCaseName, "/", Crop, "/transform/APSIM/AOI", sep="")
 
 log_file <- paste(path.to.extdata, "progress_log_readGeo_CM_APSIM.txt", sep='/')

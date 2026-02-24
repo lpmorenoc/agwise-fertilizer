@@ -27,7 +27,7 @@ Crops <- c(main_Crop, sec_Crop)
 main_Crop_varietyid <- "Early"
 # main_Crop_varietyid <- "Dekalb_XL82"  # Maize cultivar
 # main_Crop_varietyid <- "Katumani"  # Maize cultivar
-# sec_Crop_varietyid <- "Florunner"  # Peanut cultivar
+sec_Crop_varietyid <- "Florunner"  # Peanut cultivar
 # sec_Crop_varietyid <- "Soya791"  # Soybean cultivar
 varietyids <- c(main_Crop_varietyid, sec_Crop_varietyid)
 
