@@ -47,3 +47,7 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# Avoid temporary ipynb_checkpoints folders and files
+*.ipynb_checkpoints/
+
