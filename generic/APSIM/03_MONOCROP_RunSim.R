@@ -38,14 +38,14 @@ runapsim <-function(i, path.to.zone, expfile_name, AOI=TRUE){
   )
 }
 
-apsim.exec <- function(country, useCaseName, Crop, AOI = TRUE,expfile_name,varietyid, zone, level2=NA){  
+apsim.exec <- function(country, useCaseName, Crop, AOI = TRUE,expfile_name,varietyid, zone, level2 = NA, project_root = NA){  
   
   #Set working directory to save the results
   # zone <- gsub(" ", "_", zone)
   if(AOI == TRUE){
-    path.to.varietyid <- paste("/home/jovyan/agwise-cropping-innovation/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/APSIM/AOI/",varietyid, sep="")
+    path.to.varietyid <- paste(project_root,"/useCases/Data/CropModel_Approach/", Crop,"/useCase_", country, "_",useCaseName, "/transform/APSIM/AOI/",varietyid, sep="")
   }else{
-    path.to.varietyid <- paste("/home/jovyan/agwise-cropping-innovation/Data/useCase_", country, "_",useCaseName, "/", Crop, "/transform/APSIM/fieldData/",varietyid, sep="")
+    path.to.varietyid <- paste(project_root,"/useCases/Data/CropModel_Approach/", Crop,"/useCase_", country, "_",useCaseName, "/transform/APSIM/fieldData/",varietyid, sep="")
   }
   
   # define working path or path to run the model
@@ -108,30 +108,4 @@ apsim.exec <- function(country, useCaseName, Crop, AOI = TRUE,expfile_name,varie
 
 
 
-
-
-# my_list_sim<- function(crop, my_list_clm, extd.dir, stn, my_list_soil){
-# 
-#   cores<- detectCores()
-#   myCluster <- makeCluster(cores -2, # number of cores to use
-#                            type = "PSOCK") # type of cluster
-#   registerDoParallel(myCluster)
-#   my_list_sims<- foreach (i =1:length(my_list_clm)) %dopar% {  
-#     setwd(paste0(extd.dir, '/', i)) 
-#     # setwd(paste0(extd.dir, '/', i))  
-#     tryCatch(apsimx::apsimx(crop, value = "HarvestReport"), error=function(err) NA)
-#   }
-#   newlist<- foreach (i =1:length(my_list_clm)) %dopar% { 
-#     if(is.na(my_list_sims[i]) == TRUE) {
-#       setwd(paste0(extd.dir, '/', i)) 
-#       #tryCatch({my_list_soil$soil$SAT <-c(0.521, 0.521, 0.497, 0.488, 0.478, 0.440)}, error=function(e) {NA})
-#       my_list_soil[[i]]$SoilName_1$crops <- c("Rice","Wheat","Teff","Sugarcane","Maize","Soybean","OilPalm","Cassava")
-#       apsimx::edit_apsimx_replace_soil_profile(crop, root = c("pd", "Base_one"), soil.profile = my_list_soil[[i]]$SoilName_1, overwrite = TRUE) 
-#       my_list_sims[[i]]<-tryCatch(apsimx::apsimx(crop, value = "HarvestReport"), error=function(err) NA)
-#     }
-#     else  my_list_sims[[i]]
-#   }
-#   
-#    return(newlist)
-# }
 

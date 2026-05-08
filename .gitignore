@@ -51,3 +51,6 @@ rsconnect/
 # Avoid temporary ipynb_checkpoints folders and files
 *.ipynb_checkpoints/
 
+#Avoid result and transform folders
+*result/
+*transform/

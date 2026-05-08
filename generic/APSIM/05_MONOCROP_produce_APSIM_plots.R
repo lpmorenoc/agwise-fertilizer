@@ -44,11 +44,11 @@ suppressWarnings(suppressPackageStartupMessages(invisible(lapply(packages_requir
 #'
 
 
-apsim.plots<- function(country, variety, useCaseName, Crop, expfile_name, produce_EXTE_plots=FALSE, yield_column=NULL){
+apsim.plots<- function(country, variety, useCaseName, Crop, expfile_name, produce_EXTE_plots=FALSE, yield_column=NULL,
+                       project_root = NA){
   clean_expfile_name <- tools::file_path_sans_ext(expfile_name)
-  results <- read_parquet(paste0("/home/jovyan/agwise-cropping-innovation/Data/useCase_Rwanda_RAB/Maize/result/APSIM/AOI/",
-                                 clean_expfile_name,
-                                 ".parquet"))
+  results <- read_parquet(paste(project_root,"/Data/CropModel_Approach/", Crop,"/useCase_",country, "_", useCaseName, 
+                                "/result/APSIM/AOI/",clean_expfile_name,".parquet", sep = ""))
   
   if (!is.null(yield_column) && (yield_column %in% names(results))){
     results$Yield <- NULL
@@ -142,21 +142,29 @@ apsim.plots<- function(country, variety, useCaseName, Crop, expfile_name, produc
     as.data.frame() 
   
   country_ori <- country
-  country <- geodata::gadm(country = country, level = 0, path = tempdir())
+  country <- geodata::gadm(country = country, level = 1, path = tempdir())
   country <- st_as_sf(country)
+  
+  xlimmin <- min(pd$Longitude)-0.1
+  xlimmax <- max(pd$Longitude)+0.1
+  ylimmin <- min(pd$Latitude)-0.1
+  ylimmax <- max(pd$Latitude)+0.1
+  
   
   p1 <- ggplot() + 
     geom_sf(data=country, fill = "white") +
     geom_point(data=pd, 
                aes(x=Longitude, y=Latitude, color= SowDate_factor), 
                size = 2) +
+    coord_sf(ylim = c(ylimmin, ylimmax), xlim = c(xlimmin, xlimmax), expand = FALSE)+
     labs(title = "Best Performing Sowing Date by Location",
          color = "Sowing Date")
 
-  ggsave(paste0("/home/jovyan/agwise-cropping-innovation/Data/useCase_", country_ori, "_", useCaseName, "/", Crop, "/result/APSIM/", clean_expfile_name, "_best_sowdate_by_loc.png"),
+  ggsave(paste0(project_root,"/Data/CropModel_Approach/", Crop,"/useCase_",country_ori, "_", useCaseName, 
+                      "/result/APSIM/AOI/",clean_expfile_name, "_best_sowdate_by_loc.png"),
          p1, width = 8, height = 6, dpi = 300)
   print(p1)
-  
+
   # p2 <- ggplot() +  geom_point(data=pd, aes(x=Longitude, y=Latitude, color=SowDate_factor), size = 2)
   
   p3 <- ggplot() + 
@@ -164,8 +172,10 @@ apsim.plots<- function(country, variety, useCaseName, Crop, expfile_name, produc
     geom_point(data=pd, 
                aes(x=Longitude, y=Latitude, color= Yield), 
                size = 2) +
+    coord_sf(ylim = c(ylimmin, ylimmax), xlim = c(xlimmin, xlimmax), expand = FALSE)+
     labs(title = "Highest Yield by location")
-  ggsave(paste0("/home/jovyan/agwise-cropping-innovation/Data/useCase_", country_ori, "_", useCaseName, "/", Crop, "/result/APSIM/", clean_expfile_name, "_highest_yield_by_loc.png"),
+  ggsave(paste0(project_root,"/Data/CropModel_Approach/", Crop,"/useCase_",country_ori, "_", useCaseName, 
+                "/result/APSIM/AOI/",clean_expfile_name, "_highest_yield_by_loc.png"),
          p3, width = 8, height = 6, dpi = 300)
   print(p3)
   

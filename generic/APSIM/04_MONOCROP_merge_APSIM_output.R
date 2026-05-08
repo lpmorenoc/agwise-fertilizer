@@ -88,7 +88,8 @@ read_APSIM_weather_file <- function(filepath) {
 #'
 #' @examples merge_APSIM_output(country="Rwanda", useCaseName="RAB",Crop="Maize",varietyids=c("Early")
 
-merge_APSIM_output <- function(country, useCaseName, Crop, expfile_name, AOI = FALSE, season = NULL, varietyids, zone_folder = TRUE, level2_folder = FALSE) {
+merge_APSIM_output <- function(country, useCaseName, Crop, expfile_name, AOI = FALSE, season = NULL, varietyids, zone_folder = TRUE, level2_folder = FALSE,
+                               project_root = NA) {
   # Set up parallel processing
   num_cores <- availableCores() -3
   plan(multisession, workers = num_cores)
@@ -99,9 +100,9 @@ merge_APSIM_output <- function(country, useCaseName, Crop, expfile_name, AOI = F
       if (is.null(season)) {
         stop("With AOI=TRUE, season cannot be null. Please provide a season number.")
       }
-      path.to.extdata <- paste("/home/jovyan/agwise-cropping-innovation/Data/useCase_", country, "_", useCaseName, "/", Crop, "/transform/APSIM/AOI/", varietyid, sep = "")
+      path.to.extdata <- paste(project_root,"/Data/CropModel_Approach/", Crop,"/useCase_",country, "_", useCaseName, "/transform/APSIM/AOI/", varietyid, sep = "")
     } else {
-      path.to.extdata <- paste("/home/jovyan/agwise-cropping-innovation/Data/useCase_", country, "_", useCaseName, "/", Crop, "/transform/APSIM/fieldData/", varietyid, sep = "")
+      path.to.extdata <- paste(project_root,"/Data/CropModel_Approach/", Crop,"/useCase_", country, "_", useCaseName, "/transform/APSIM/fieldData/", varietyid, sep = "")
     }
     
     if (!dir.exists(file.path(path.to.extdata))) {
@@ -174,9 +175,9 @@ merge_APSIM_output <- function(country, useCaseName, Crop, expfile_name, AOI = F
   }
   
   if (AOI == TRUE) {
-    dir_path <- paste0("/home/jovyan/agwise-cropping-innovation/Data/useCase_", country, "_", useCaseName, "/", Crop, "/result/APSIM/AOI/")
+    dir_path <- paste0(project_root,"/Data/CropModel_Approach/", Crop,"/useCase_",country, "_", useCaseName, "/result/APSIM/AOI/")
   } else {
-    dir_path <- paste0("/home/jovyan/agwise-cropping-innovation/Data/useCase_", country, "_", useCaseName, "/", Crop, "/result/APSIM/fieldData/")
+    dir_path <- paste0(project_root,"/Data/CropModel_Approach/", Crop,"/useCase_",country, "_", useCaseName, "/result/APSIM/fieldData/")
   }
   
   if (!dir.exists(dir_path)) {

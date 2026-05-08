@@ -1,103 +1,24 @@
-# Create weather and soil files in DSSAT format
+# Create weather and soil files in APSIM format
 
 # Introduction: 
 # This script allows the creation of weather and soil files up to administrative level 2
-# Authors : P.Moreno, A. Sila, S. Mkuhlani, E.Bendito Garcia 
-# Credentials : EiA, 2024
-# Last modified June 28, 2024 
+# Authors : P. Moreno-Cadena , A. Carmona-Cabrero, S. Mkuhlani
+# Credentials : AgWise, 2026
+# Last modified April 06, 2026 
 
 #################################################################################################################
-## sourcing required packages                                                                                  ##
+## sourcing required packages and helper functions                                                                                 ##
 #################################################################################################################
-options(future.globals.maxSize = 6* 1024^3)
 
-packages_required <- c("chirps", "tidyverse","sf","furrr","future", "future.apply","parallel","sp","apsimx")
-
-# check and install packages that are not yet installed
-installed_packages <- packages_required %in% rownames(installed.packages())
-if(any(installed_packages == FALSE)){
-install.packages(packages_required[!installed_packages])}
-
-# load required packages
-invisible(lapply(packages_required, library, character.only = TRUE))
-
-# Function to fix some KS values being 0
-replace_zero_with_previous <- function(x) {
-  for (i in seq_along(x)) {
-    if (x[i] == 0) {
-      # replace with previous non-zero
-      x[i] <- if (i == 1) NA else x[i-1]
-    }
-  }
-  return(x)
-}
-
-##### Equations from apsimx package
-#' @description Texture triangle as equations
-#' @details It requires the silt and clay percentages to define the texture class
-#
-#' Title getting the texture class
-#'
-#' @param usda_clay percentage of clay (as index or /100)
-#' @param usda_silt percentage of silt (as index or /100)
-#' @return class (texture class)
-#' @examples texture_class(clay,silt)
-#'
-texture_class <- function (usda_clay, usda_silt ) {
-
-if(usda_clay < 0 || usda_clay > 1) stop("usda_clay should be between 0 and 1")
-if(usda_silt < 0 || usda_silt > 1) stop("usda_silt should be between 0 and 1")
-
-  intl_clay <- usda_clay
-  intl_silt <- usda_silt
-  intl_sand <- 1.0 - intl_clay - intl_silt
-
-  if ((intl_sand < 0.75 - intl_clay) && (intl_clay >= 0.40)) {
-    class <- "silty clay"
-  } else if ((intl_sand < 0.75 - intl_clay) && (intl_clay >= 0.26)) {
-    class <- "silty clay loam"
-  } else if (intl_sand < 0.75 - intl_clay) {
-    class <- "silty loam"
-  } else if ((intl_clay >= 0.40 + (0.305-0.40)/(0.635-0.35) * (intl_sand-0.35)) && (intl_clay < 0.50 + (0.305-0.50)/(0.635-0.50) * (intl_sand - 0.50))) {
-    class <- "clay"
-  } else if (intl_clay >= 0.26 + (0.305-0.26)/(0.635-0.74) * (intl_sand-0.74)) {
-    class <- "sandy clay"
-  } else if ((intl_clay >= 0.26 + (0.17-0.26)/(0.83-0.49) * (intl_sand-0.49)) && (intl_clay < 0.10 + (0.305-0.10)/(0.635-0.775) * (intl_sand - 0.775))) {
-    class <- "clay loam"
-  } else if (intl_clay >= 0.26 + (0.17-0.26)/(0.83-0.49) * (intl_sand-0.49)) {
-    class <- "sandy clay loam"
-  } else if ((intl_clay >= 0.10 + (0.12-0.10)/(0.63-0.775) * (intl_sand-0.775)) && (intl_clay < 0.10 + (0.305-0.10)/(0.635-0.775) * (intl_sand - 0.775))) {
-    class <- "loam"
-  } else if (intl_clay >= 0.10 + (0.12-0.10)/(0.63-0.775) * (intl_sand-0.775)) {
-    class <- "sandy loam"
-  } else if (intl_clay < 0.00 + (0.08-0.00)/(0.88-0.93) * (intl_sand-0.93)) {
-    class <- "loamy sand"
-  } else {
-    class <- "sand"
-  }
-
-  return( class )
-}
-
-#' Evaporation limit function from Ritchie et al. (1989); cited in Allen et al. (2005)
-#' @param clay1 Clay percentage for the top soil horizon
-#' @param sand1 Sand percentage for the top soil horizon
-#' @keywords internal
-#' @export
-slu1 <- function(clay1,sand1) {
-  ifelse(sand1>=80, (20-0.15*sand1),
-         ifelse(clay1>=50,(11-0.06*clay1),
-                (8-0.08*clay1)))
-}
-
-
+source(paste0(project_root, '/generic/APSIM/common_helpers_APSIM.R'))
+source(paste0(project_root, '/generic/APSIM/helpers_readGeo_CM_zone_APSIM.R'))
 
 #' Function that creates the soil and weather file for one location/folder
 #'
 #' @param i last digits of the folder (folder ID)
 #' @param country country name
-#' @param path.to.extdata working directory to save the weather and soil data in DSSAT format
-#' @param path.to.temdata directory with template weather and soil data in DSSAT format
+#' @param path.to.extdata working directory to save the weather and soil data in APSIM format
+#' @param path.to.temdata directory with template weather and soil data in APSIM format
 #' @param Tmaxdata dataframe with the maximum data for all the locations
 #' @param Tmindata dataframe with the minimum temperature data for all the locations
 #' @param Sraddata dataframe with the solar radiation data for all the locations
@@ -106,232 +27,98 @@ slu1 <- function(clay1,sand1) {
 #' @param coords dataframe with the locations and metadata
 #' @param Soil dataframe with the soil data information
 #' @param AOI True if the data is required for target area, and false if it is for trial sites
-#' @return soil and weather file in DSSAT format
+#' @return soil and weather file in APSIM format
 #' @export
 #'
 #' @examples process_grid_element(1)
 
-depth_names = function(var_name, depths){
-  list_depthnames = list("5"= "0-5cm","15" = "5-15cm","30" = "15-30cm","60" = "30-60cm","100" = "60-100cm","200" = "100-200cm")
-  return (sapply(depths, function(d) paste0(var_name, "_", list_depthnames[as.character(d)])))
-}
                  
-process_grid_element <- function(i, country, path.to.extdata, path.to.temdata,
-                                 Tmaxdata, Tmindata, Sraddata, Rainfalldata,
-                                 coords, Soil, AOI, varietyid, zone, ex_profile,
-                                 level2 = NA, Depth = c(5,15,30,60,100,200)) {
+process_grid_element <- function(
+    i, country, path.to.extdata, path.to.temdata, TemperatureMax, 
+    TemperatureMin, SolarRadiation, Rainfall, coords, Soil, AOI, varietyid, 
+    zone, level2 = NA, Depth = c(5, 15, 30, 60, 100, 200))  {
 
-  if(!is.na(level2) & !is.na(zone)){
-    pathOUT <- paste(path.to.extdata,paste0(zone,'/',level2,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
-    pathOUT <- gsub(" ", "_", pathOUT)  # APSIM does not allow for whitespaces in paths
-  }else if(is.na(level2) & !is.na(zone)){
-    pathOUT <- paste(path.to.extdata,paste0(zone,'/EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
-    pathOUT <- gsub(" ", "_", pathOUT)  # APSIM does not allow for whitespaces in paths
-  }else if(!is.na(level2) & is.na(zone)){
-    print("You need to define first a zone (administrative level 1) to be able to get data for level 2 (administrative level 2) in the creation of soil and weather files. Process will stop")
-    return(NULL)
-  }else{
-    pathOUT <- paste(path.to.extdata,paste0('EXTE', formatC(width = 4, (as.integer(i)), flag = "0")), sep = "/")
-    pathOUT <- gsub(" ", "_", pathOUT)  # APSIM does not allow for whitespaces in paths
-  }
-  if (!dir.exists(file.path(pathOUT))){
-    dir.create(file.path(pathOUT), recursive = TRUE)
-  }
-  # setwd(pathOUT)
+  pathOUT <- define_pathOUT(path.to.extdata = path.to.extdata, i = i, 
+                            zone = zone, level2 = level2)
+  setwd(pathOUT)
+  
+  ### Creation of weather file ###
+  TemperatureMax_i <- filter_by_coord(TemperatureMax, coords, i)
+  TemperatureMin_i <- filter_by_coord(TemperatureMin, coords, i)
+  SolarRadiation_i <- filter_by_coord(SolarRadiation, coords, i)
+  Rainfall_i <- filter_by_coord(Rainfall, coords, i)
 
-  Tmaxdata <- Tmaxdata[Tmaxdata$longitude==coords$longitude[i] & Tmaxdata$latitude==coords$latitude[i],]
-  Tmindata <- Tmindata[Tmindata$longitude==coords$longitude[i] & Tmindata$latitude==coords$latitude[i],]
-  Sraddata <- Sraddata[Sraddata$longitude==coords$longitude[i] & Sraddata$latitude==coords$latitude[i],]
-  Rainfalldata <- Rainfalldata[Rainfalldata$longitude==coords$longitude[i] & Rainfalldata$latitude==coords$latitude[i],]
-  
-  if(AOI == TRUE){
-    Rainfalldata <- pivot_longer(Rainfalldata,
-                             cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate"),
-                             names_to = c("Variable", "Date"),
-                             names_sep = "_",
-                             values_to = "rain")
-    Rainfalldata <-unique(dplyr::select(Rainfalldata,-c(Variable,startingDate, endDate)))
-  
-    Sraddata <- pivot_longer(Sraddata,
-                             cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate"),
-                                   names_to = c("Variable", "Date"),
-                                   names_sep = "_",
-                                   values_to = "radn")
-    Sraddata <-unique(dplyr::select(Sraddata,-c(Variable,startingDate, endDate)))
-  
-    Tmaxdata <- pivot_longer(Tmaxdata,
-                             cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate"),
-                                   names_to = c("Variable", "Date"),
-                                   names_sep = "_",
-                                   values_to = "maxt")
-    Tmaxdata <-unique(dplyr::select(Tmaxdata,-c(Variable,startingDate, endDate)))
-  
-    Tmindata <- pivot_longer(Tmindata,
-                             cols=-c("longitude", "latitude","NAME_1","NAME_2","startingDate", "endDate"),
-                                   names_to = c("Variable", "Date"),
-                                   names_sep = "_",
-                                   values_to = "mint")
-    Tmindata <-unique(dplyr::select(Tmindata,-c(Variable,startingDate, endDate)))
-  
-  }else{
-    #We need to confirm the identifier columns in fieldData
-    Rainfalldata <- pivot_longer(Rainfalldata,
-                             cols=-c("longitude","latitude","startingDate","endDate","yearPi","yearHi","pl_j",
-                                     "hv_j","NAME_1","NAME_2"),
-                             names_to = c("Variable", "Date"),
-                             names_sep = "_",
-                             values_to = "rain")
-     Rainfalldata <-dplyr::select(Rainfalldata,-Variable)
-  
-     Sraddata <- pivot_longer(Sraddata,
-                              cols=-c("longitude","latitude","startingDate","endDate","yearPi","yearHi","pl_j",
-                                      "hv_j","NAME_1","NAME_2"),
-                                    names_to = c("Variable", "Date"),
-                                    names_sep = "_",
-                                    values_to = "radn")
-     Sraddata <-dplyr::select(Sraddata,-Variable)
-  
-     Tmaxdata <- pivot_longer(Tmaxdata,
-                              cols=-c("longitude","latitude","startingDate","endDate","yearPi","yearHi","pl_j",
-                                      "hv_j","NAME_1","NAME_2"),
-                                   names_to = c("Variable", "Date"),
-                                   names_sep = "_",
-                                   values_to = "maxt")
-    Tmaxdata <-dplyr::select(Tmaxdata,-Variable)
-  
-    Tmindata <- pivot_longer(Tmindata,
-                             cols=-c("longitude","latitude","startingDate","endDate","yearPi","yearHi","pl_j",
-                                     "hv_j","NAME_1","NAME_2"),
-                                   names_to = c("Variable", "Date"),
-                                   names_sep = "_",
-                                   values_to = "mint")
-    Tmindata <-dplyr::select(Tmindata,-Variable)
-  }
-  
-  tst <- na.omit(merge(Tmaxdata, merge(Tmindata,merge(Sraddata,Rainfalldata))))
-  tst$Date <- as.POSIXct(tst$Date, format = "%Y-%m-%d", tz = "UTC")
-  tst <- dplyr::select(tst,c(Date,rain,maxt,mint,radn))
-  tst  <- mutate(tst , across(c(rain,maxt,mint,radn), as.numeric))
-  
-  
-  # Avoid TMIN > TMAX
-  tst <- tst %>%
-    rowwise() %>%
-    mutate(
-      temp = maxt,
-      temp2 = mint,
-      maxt = ifelse(mint > maxt, temp2, maxt),
-      mint = ifelse(mint > temp, temp, temp2),
-      day = lubridate::yday(Date),
-      year=format(Date,"%Y")
-    ) %>%
-    ungroup()
-  
-  amp <- tst %>%
-    # Extract month from DATE column
-    mutate(month = lubridate::month(as.Date(tst$Date,format = "%y%j"))) %>%
-    # Group data by month
-    group_by(month) %>%
-    # Calculate monthly means
-    dplyr::summarise(monthly_avg = mean((maxt+mint)/2,na.rm=T)) %>%
-    # Calculate AMP as half the difference between minimum and
-    #     maximum monthly temperature
-    dplyr::summarise(AMP = (max(monthly_avg, na.rm=T)-min(monthly_avg,na.rm=T))/2)
-  
-  tav <- tst %>%
-    dplyr::summarise(TAV=mean((maxt+mint)/2,na.rm=T))
-  
-  
-  tst <- tst %>%
-    select(c(year,day,rain,maxt,mint,radn))
-  
-  location <- toupper(substr(unique(Tmaxdata$NAME_2),start =1, stop =4))
-  units <- c("()", "()","(mm)","(oC)", "(oC)", "(MJ/m2/day)")
-  comments <- paste("!data from various areas. retrieved: ", Sys.time())
+  # Location name
+  location <- unique(TemperatureMax_i$NAME_2)
 
+  # Pivot longer
+  TemperatureMax_i <- pivot_weather(
+    TemperatureMax_i, value_name = "maxt", AOI = AOI)
+  TemperatureMin_i <- pivot_weather(
+    TemperatureMin_i, value_name = "mint", AOI = AOI)
+  SolarRadiation_i <- pivot_weather(
+    SolarRadiation_i, value_name = "radn", AOI = AOI)
+  Rainfall_i <- pivot_weather(
+    Rainfall_i, value_name = "rain", AOI = AOI)
+  
+  # Creation of APSIM weather file
+  tst <- build_APSIM_WTH(maxt = TemperatureMax_i, mint = TemperatureMin_i, 
+                         radn = SolarRadiation_i, rain = Rainfall_i) 
 
-  attr(tst, "filename") <- paste0(location,".met")
-  attr(tst, "site") <- paste("site =", location)
-  attr(tst, "latitude") <- paste("latitude =", coords[i, 2])
-  attr(tst, "longitude") <- paste("longitude =",coords[i, 1])
-  attr(tst, "tav") <- paste("tav =",tav)
-  attr(tst, "amp") <- paste("amp =",amp)
-  attr(tst, "colnames") <- names(tst)
-  attr(tst, "units") <- units
-  attr(tst, "comments") <- comments
-  ## No constants
-  class(tst) <- c("met", "data.frame")
-  #tst<- amp_apsim_met(tst)
-
-
-  # apsimx::write_apsim_met(my_list_clm[[i]], wrt.dir = "D:/APSIM/", filename = paste0('wth_loc_',i,'.met'))}
+  
+  tst <- get_APSIM_WTH_header(tst = tst, location = location)
+  
+  ### Write APSIM file ###
   apsimx::write_apsim_met(tst, wrt.dir = pathOUT, filename = paste0('wth_loc_',i,'.met'))
-  #cat(" Writing weather file")
 
-  ##########################################
+  ### Creation of DSSAT SOIL.SOL file ###
+  lon_i <- as.numeric(coords[i, 1])
+  lat_i <- as.numeric(coords[i, 2])
+  
   # Get soil ISRIC data from server
-  # Depth<-c(5,15,30,60,100,200)
-  LL15 <-as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]), depth_names("PWP", Depth)])
-  DUL  <-as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),depth_names("FC", Depth)])
-  SAT  <-as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),depth_names("SWS", Depth)])
-  SKS  <-as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),depth_names("KS", Depth)])/10
-  SSS  <-round(as.numeric(SKS), digits = 1)
-  BDM  <- as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),depth_names("bdod", Depth)])
-  LOC  <- as.numeric((Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),depth_names("soc", Depth)])/10)
-  LCL  <- as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),depth_names("clay", Depth)])
-  LSI  <- as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),depth_names("silt", Depth)])
-  LNI  <- c(as.numeric((Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),depth_names("nitrogen", Depth)])/10))
-  LHW  <- as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),depth_names("phh2o", Depth)])
-  # LDR <- as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("LDR")])
-  CEC <- as.numeric(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),depth_names("cec", Depth)])
+  LL15 <- get_depth_var(Soil = Soil, lon = lon_i, lat = lat_i, 
+                        var = "PWP", Depth = Depth, scale = 1)
+  DUL <- get_depth_var(Soil = Soil, lon = lon_i, lat = lat_i, 
+                       var = "FC", Depth = Depth, scale = 1)
+  SAT <- get_depth_var(Soil = Soil, lon = lon_i, lat = lat_i, 
+                       var = "SWS", Depth = Depth, scale = 1)
+  SKS <- get_depth_var(Soil = Soil, lon = lon_i, lat = lat_i, 
+                       var = "KS", Depth = Depth, scale = 10)
+  SSS <- get_depth_var(Soil = Soil, lon = lon_i, lat = lat_i, 
+                       var = "KS", Depth = Depth, scale = 10, round_digits = 1)
+  BDM <- get_depth_var(Soil = Soil, lon = lon_i, lat = lat_i, 
+                       var = get_var_name(var = "bdod", Depth), Depth = Depth)
+  LOC <- get_depth_var(Soil = Soil, lon = lon_i, lat = lat_i, 
+                       var = get_var_name(var = "soc", Depth), Depth = Depth, scale = 10)
+  LCL <- get_depth_var(Soil = Soil, lon = lon_i, lat = lat_i, 
+                       var = get_var_name(var = "clay", Depth), Depth = Depth)
+  LSI <- get_depth_var(Soil = Soil, lon = lon_i, lat = lat_i, 
+                       var = get_var_name(var = "silt", Depth), Depth = Depth)
+  Sand <- get_depth_var(Soil = Soil, lon = lon_i, lat = lat_i, 
+                        var = get_var_name(var = "sand", Depth), Depth = Depth)
+  LNI <- get_depth_var(Soil = Soil, lon = lon_i, lat = lat_i, 
+                       var = get_var_name("nitrogen", Depth), Depth = Depth, scale = 10)
+  LHW <- get_depth_var(Soil = Soil, lon = lon_i, lat = lat_i, 
+                       var = get_var_name("phh2o", Depth), Depth = Depth)
+  LDR <- get_site_var(Soil = Soil, lon = lon_i, lat = lat_i, 
+                      var = "LDR")
+  CEC <- get_depth_var(Soil = Soil, lon = lon_i, lat = lat_i, 
+                       var = get_var_name(var = "cec", Depth), Depth = Depth)
 
 
-
-   ##### Runoff curve no. [Soil Conservation Service/NRCS] #####
-  texture <- texture_class((LCL[1]/100), (LSI[1]/100))
+  # Get Soil texture, albedo, Lower Runoff limit ~ Curve Number, Soil Layer Upper Limit and Root Growth Factor
+  max_depths <- depths_to_numeric(Depth)
+  texture_list <- get_texture_params(
+    LCL = LCL, LSI = LSI, Sand = Sand, Depth = max_depths)
+  texture <- texture_list$texture
+  texture_soil <- texture_list$texture_soil
+  ALB <- texture_list$ALB
+  LRO <- texture_list$LRO
+  SLU <- texture_list$SLU
+  RGF <- texture_list$RGF
   
-  textureClasses <- c("clay", "silty clay", "sandy clay", "clay loam", "silty clay loam", "sandy clay loam", "loam", "silty loam", "sandy loam", "silt", "loamy sand", "sand", "NO DATA")
-  textureClasses_sum <- c("C", "SIC", "SC", "CL", "SICL", "SCL", "L", "SIL", "SL", "SI", "LS", "S", "NO DATA")
-  
-  Albedo <- c(0.12, 0.12, 0.13, 0.13, 0.12, 0.13, 0.13, 0.14, 0.13, 0.13, 0.16, 0.19, 0.13)
-  CN2 <- c(73.0, 73.0, 73.0, 73.0, 73.0, 73.0, 73.0, 73.0, 68.0, 73.0, 68.0, 68.0, 73.0)
-  SWCON <- c(0.25, 0.3, 0.3, 0.4, 0.5, 0.5, 0.5, 0.5, 0.6, 0.5, 0.6, 0.75, 0.5)
-  
-  wtc <- which(textureClasses == texture)
-  # Soil albedo
-  ALB <- Albedo[wtc]
-  # Runoff curve
-  LRO <- CN2[wtc]
-  
-  texture_soil <- textureClasses_sum[wtc]
-  
-  
-  # SLU <- slu1(Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("clay_0-5cm")],Soil[Soil$longitude==as.numeric(coords[i, 1]) & Soil$latitude==as.numeric(coords[i, 2]),c("sand_0-5cm")])
-  
-  # Soil root growth factor. Based on formula from DSSAT. Maybe not the best option for soils with duripan or other root growth limitations
-  # layer_center <- c(Depth[1]/2, (Depth[-1] - Depth[-length(Depth)]) / 2 + Depth[-length(Depth)])
-  # RGF = ifelse(Depth<=15, 1,1 * exp(-0.02 * layer_center))
-  
-  # ex_profile <- NULL
-  # retries <- 50
-  # delay <- 2
-  # for (attempt in seq_len(retries)) {
-  #   tryCatch({
-  #     ex_profile <- apsimx::get_isric_soil_profile(lonlat = c(as.numeric(coords[i, 1]), as.numeric(coords[i, 2])))  # Attempt to fetch data
-  #     return(ex_profile)
-  #   }, error = function(e) {
-  #     if (attempt < retries) {
-  #       Sys.sleep(delay * attempt)  # Exponential backoff
-  #       message(sprintf("Retrying (attempt %d) for location %i, lon: %f, lat: %f", attempt, i,coords[i, 1], coords[i, 2]))
-  #     } else {
-  #       message(sprintf("Failed after %d attempts for location %i,lon: %f, lat: %f. Error: %s", retries,i, coords[i, 1], coords[i, 2], e$message))
-  #       ex_profile <- apsimx::get_isric_soil_profile(lonlat = c(as.numeric(coords[i-1, 1]), as.numeric(coords[i-1, 2])))  # Attempt to fetch data from previous point
-  #       return(ex_profile)
-  #   }
-  #     })
-  # }
-
-  
+  # Read APSIM soil template (the name has to be ex_profile)
+  load(paste(path.to.temdata, "my_sol.RData", sep="/"))
 
  # Replace by internal values estimated
   ex_profile$soil$LL15 <- LL15
@@ -343,6 +130,7 @@ process_grid_element <- function(i, country, path.to.extdata, path.to.temdata,
   ex_profile$soil$Carbon <- LOC
   ex_profile$soil$ParticleSizeClay <- LCL
   ex_profile$soil$ParticleSizeSilt <- LSI
+  ex_profile$soil$ParticleSizeSand <- 100 - LCL - LSI
   ex_profile$soil$Nitrogen <- LNI*100
   ex_profile$soil$PH <- LHW
   ex_profile$soil$CEC <- CEC # To check the units
@@ -356,222 +144,220 @@ process_grid_element <- function(i, country, path.to.extdata, path.to.temdata,
 }
 
   
-# Reading the weather and soil data for crop model and transforming it to DSSAT format
+# Reading the weather and soil data for crop model and transforming it to APSIM format
 #'
 #' @param country country name
 #' @param useCaseName use case name  name
 #' @param Crop the name of the crop to be used in creating file name to write out the result.
 #' @param AOI True if the data is required for target area, and false if it is for trial sites
 #' @param season when data is needed for more than one season, this needs to be provided to be used in the file name
-#' @param pathIn_zone TRUE if the input data (in geo_4cropModel) are organized by zone or province and false if it is just one file 
+#' @param zone name of the region/province (administrative level 1 of the country) where the simulations will be run 
+#' @param level2 name of the administrative level 2 of the country where the simulations will be run 
+#' @param varietyid name of the crop variety that is sowed
+#' @param pathIn_zone TRUE if the input data (in geo_4cropModel) are organized by zone or province and false if it is just one file
+#' @param path.to.temdata
+#' @param path.to.extdata
 #' @param Depth list of soil depths information 
+#' @param ex_profile Example or template soil profile stored in path.to.temdata as a file with extension *.RData
+ 
                  
-#' @return weather and soil data in DSSAT format
+#' @return weather and soil data in APSIM format
 #' @export
 #'
-#' @examples readGeo_CM(country = "Kenya",  useCaseName = "KALRO", Crop = "Maize", AOI = TRUE, season=1, Province = "Kiambu")
-readGeo_CM_zone_APSIM <- function(country, useCaseName, Crop, AOI = FALSE, season=1, zone,level2=NA,varietyid,pathIn_zone = T, Depth = c(5,15,30,60,100,200)){
-  # cat(zone)
+#' @example readGeo_CM(country = "Kenya",  useCaseName = "KALRO", Crop = "Maize", AOI = TRUE, season=1, Province = "Kiambu")
+readGeo_CM_zone_APSIM <- function(
+    country, useCaseName, Crop, project_root, AOI = FALSE, season=1, zone, 
+    level2=NA,varietyid,pathIn_zone = T,Depth = c(5,15,30,60,100,200), 
+    Forecast = F, fc_month = NULL, fc_year = NULL, season_length_months = NULL,
+     datasourcing_path = "~/agwise-datasourcing/dataops/datasourcing")
+  {
+
   # General input path with all the weather data
-  general_pathIn <- paste("/home/jovyan/agwise-datasourcing/dataops/datasourcing/Data/useCase_", country, "_", useCaseName,"/", Crop, "/result/geo_4cropModel", sep="")
-  # define input path based on the organization of the folders by zone and level2 (usually just by zone)
-  if (pathIn_zone == T) {
-    if(!is.na(level2) & !is.na(zone)){
-      pathIn <- paste(general_pathIn,zone,level2, sep = "/")
-    }else if(is.na(level2) & !is.na(zone)){
-      pathIn <- paste(general_pathIn,zone, sep = "/")
-    }else if(!is.na(level2) & is.na(zone)){
-      print("You need to define first a zone (administrative level 1) to be able to get data for level 2 (administrative level 2) in datasourcing. Process stopped")
-      return(NULL)
-    }else{
-      pathIn <- general_pathIn
+  # Define data input path based on the organization of the folders by zone and level2
+  if (!Forecast) {
+    general_pathIn <- paste0(
+      datasourcing_path, "/Data/useCase_", country, "_",
+      useCaseName, "/", Crop, "/result/geo_4cropModel")
+  } else if (Forecast) {
+    # TODO: Forecast .RDS files need renaming
+    general_pathIn <- paste0(
+      project_root, '/Data/useCase_', country, "_", useCaseName, "/", Crop, 
+      "/transform/FC")
+    
+    get_bc_forecast_data(
+      project_root, country, useCaseName, Crop, zone, country_code, 
+      init_month_user = fc_month, season_length_months = season_length_months,
+      forecast_year = fc_year)
+  }
+
+  pathIn <- define_pathIn(general_pathIn, level2, zone, pathIn_zone, Forecast,
+                          fc_year, fc_month)
+  # Define RS file paths based on AOI
+  if (AOI) {
+    Rainfall_file <- paste0(pathIn, "Rainfall_Season_", season, 
+                            "_PointData_AOI.RDS")
+    SolarRadiation_file <- paste0(pathIn, "solarRadiation_Season_", season, 
+                                  "_PointData_AOI.RDS")
+    TemperatureMax_file <- paste0(pathIn, "temperatureMax_Season_", season, 
+                                  "_PointData_AOI.RDS")
+    TemperatureMin_file <- paste0(pathIn, "temperatureMin_Season_", season, 
+                                  "_PointData_AOI.RDS")
+    # Read ISDA or ISRIC soil file
+    if (length(Depth) == 2) {
+      # ISDA
+      Soil_file <- paste0(pathIn, "ISDA_SoilDEM_PointData_AOI_profile.RDS")
+      if (!file.exists(Soil_file)) get_ISDA_soilRDS(
+        country = country, useCaseName = useCaseName, Crop = Crop)
+      
+    } else {
+      # ISRIC
+      Soil_pathIn <- paste0(
+        datasourcing_path, "/Data/useCase_", country, "_",
+        useCaseName, "/", Crop, "/result/geo_4cropModel/", zone, "/")
+      Soil_file <- paste0(Soil_pathIn, "SoilDEM_PointData_AOI_profile.RDS")  
     }
-  }else{
-    pathIn <- general_pathIn
-  }
-
-  if (!dir.exists(pathIn)) {
-    stop("You need to provide a path with all the input (weather and soil data) as RDS. Please refer to the documentation. Process stopped")
-  }
-  
-  if(AOI == TRUE){
-    Rainfall <- readRDS(paste(pathIn, "/Rainfall_Season_", season, "_PointData_AOI.RDS", sep=""))
-    if ("Zone" %in% names(Rainfall)){ names(Rainfall)[names(Rainfall)=="Zone"] <- "NAME_1"}
-    if(!is.na(zone)){Rainfall <- Rainfall[Rainfall$NAME_1 == zone, ]}
-    if(!is.na(level2)){Rainfall <- Rainfall[Rainfall$NAME_2 == level2, ]}
     
-    SolarRadiation <- readRDS(paste(pathIn, "/solarRadiation_Season_", season, "_PointData_AOI.RDS", sep=""))
-    if ("Zone" %in% names(SolarRadiation)){ names(SolarRadiation)[names(SolarRadiation)=="Zone"] <- "NAME_1"}
-    if(!is.na(zone)){SolarRadiation <- SolarRadiation[SolarRadiation$NAME_1 == zone, ]}
-    if(!is.na(level2)){SolarRadiation <- SolarRadiation[SolarRadiation$NAME_2 == level2, ]}
-    
-    TemperatureMax <- readRDS(paste(pathIn, "/temperatureMax_Season_", season, "_PointData_AOI.RDS", sep=""))
-    if ("Zone" %in% names(TemperatureMax)){ names(TemperatureMax)[names(TemperatureMax)=="Zone"] <- "NAME_1"}
-    if(!is.na(zone)){TemperatureMax <- TemperatureMax[TemperatureMax$NAME_1 == zone, ]}
-    if(!is.na(level2)){TemperatureMax <- TemperatureMax[TemperatureMax$NAME_2 == level2, ]}
-    
-    TemperatureMin <- readRDS(paste(pathIn, "/temperatureMin_Season_", season, "_PointData_AOI.RDS", sep=""))
-    if ("Zone" %in% names(TemperatureMin)){ names(TemperatureMin)[names(TemperatureMin)=="Zone"] <- "NAME_1"}
-    if(!is.na(zone)){TemperatureMin <- TemperatureMin[TemperatureMin$NAME_1 == zone, ]}
-    if(!is.na(level2)){TemperatureMin <- TemperatureMin[TemperatureMin$NAME_2 == level2, ]}
-    
-    
-    Soil <- readRDS(paste(pathIn,"/SoilDEM_PointData_AOI_profile.RDS", sep=""))
-    if ("Zone" %in% names(Soil)){names(Soil)[names(Soil)=="Zone"] <- "NAME_1"}
-    if(!is.na(zone)){Soil <- Soil[Soil$NAME_1 == zone, ]}
-    if(!is.na(level2)){Soil <- Soil[Soil$NAME_2 == level2, ]}
-    
-  }else{
-    Rainfall <- readRDS(paste(pathIn, "Rainfall_PointData_trial.RDS", sep=""))
-    if ("Zone" %in% names(Rainfall)){ names(Rainfall)[names(Rainfall)=="Zone"] <- "NAME_1"}
-    if(!is.na(zone)){Rainfall <- Rainfall[Rainfall$NAME_1 == zone, ]}
-    if(!is.na(level2)){Rainfall <- Rainfall[Rainfall$NAME_2 == level2, ]}
-    
-    SolarRadiation <- readRDS(paste(pathIn, "solarRadiation_PointData_trial.RDS", sep=""))
-    if ("Zone" %in% names(SolarRadiation)){ names(SolarRadiation)[names(SolarRadiation)=="Zone"] <- "NAME_1"}
-    if(!is.na(zone)){SolarRadiation <- SolarRadiation[SolarRadiation$NAME_1 == zone, ]}
-    if(!is.na(level2)){SolarRadiation <- SolarRadiation[SolarRadiation$NAME_2 == level2, ]}
-    
-    TemperatureMax <- readRDS(paste(pathIn, "temperatureMax_PointData_trial.RDS", sep=""))
-    if ("Zone" %in% names(TemperatureMax)){ names(TemperatureMax)[names(TemperatureMax)=="Zone"] <- "NAME_1"}
-    if(!is.na(zone)){TemperatureMax <- TemperatureMax[TemperatureMax$NAME_1 == zone, ]}
-    if(!is.na(level2)){TemperatureMax <- TemperatureMax[TemperatureMax$NAME_2 == level2, ]}
-    
-    TemperatureMin <- readRDS(paste(pathIn, "temperatureMin_PointData_trial.RDS", sep=""))
-    if ("Zone" %in% names(TemperatureMin)){ names(TemperatureMin)[names(TemperatureMin)=="Zone"] <- "NAME_1"}
-    if(!is.na(zone)){TemperatureMin <- TemperatureMin[TemperatureMin$NAME_1 == zone, ]}
-    if(!is.na(level2)){TemperatureMin <- TemperatureMin[TemperatureMin$NAME_2 == level2, ]}
-    
-    Soil <- readRDS(paste(pathIn, "SoilDEM_PointData_trial_profile.RDS", sep=""))
-    if ("Zone" %in% names(Soil)){names(Soil)[names(Soil)=="Zone"] <- "NAME_1"}
-    if(!is.na(zone)){Soil <- Soil[Soil$NAME_1 == zone, ]}
-    if(!is.na(level2)){Soil <- Soil[Soil$NAME_2 == level2, ]}
+  } else {
+    Rainfall_file <- paste0(pathIn, "Rainfall_PointData_trial.RDS")
+    SolarRadiation_file <- paste0(pathIn, "solarRadiation_PointData_trial.RDS")
+    TemperatureMax_file <- paste0(pathIn, "temperatureMax_PointData_trial.RDS")
+    TemperatureMin_file <- paste0(pathIn, "temperatureMin_PointData_trial.RDS")
+    if (length(Depth) == 2) {
+      # ISDA
+      Soil_file <- paste0(pathIn, "ISDA_SoilDEM_PointData_trial_profile.RDS")
+      if (!file.exists(Soil_file)) get_ISDA_soilRDS(
+        country = country, useCaseName = useCaseName, Crop = Crop)
+    } else {
+      # ISRIC
+      Soil_pathIn <- paste0(
+        datasourcing_path, "/Data/useCase_", country, "_",
+        useCaseName, "/", Crop, "/result/geo_4cropModel/", zone, "/")
+      Soil_file <- paste0(Soil_pathIn, "SoilDEM_PointData_trial_profile.RDS")
+    }
   }
   
-  # Modify names created for some of the use cases with different column names
+  # Read and filter the RS data. Filtering seems unnecessary due to data storage (by zone)
+  Rainfall <- read_and_filter(
+    file = Rainfall_file,
+    zone = zone,
+    level2 = level2)
+  SolarRadiation <- read_and_filter(
+    file = SolarRadiation_file,
+    zone = zone,
+    level2 = level2)
+  TemperatureMax <- read_and_filter(
+    file = TemperatureMax_file,
+    zone = zone,
+    level2 = level2)
+  TemperatureMin <- read_and_filter(
+    file = TemperatureMin_file,
+    zone = zone,
+    level2 = level2)
+  Soil <- read_and_filter(
+    file = Soil_file,
+    zone = zone,
+    level2 = level2)
   
-  if ("lat" %in% names(Rainfall)){ names(Rainfall)[names(Rainfall)=="lat"] <- "latitude"}
-  if ("lon" %in% names(Rainfall)){ names(Rainfall)[names(Rainfall)=="lon"] <- "longitude"}
-  if ("country" %in% colnames(Rainfall)) {Rainfall <- subset(Rainfall,select =-country)}
-  
-  if ("lat" %in% names(TemperatureMax)){ names(TemperatureMax)[names(TemperatureMax)=="lat"] <- "latitude"}
-  if ("lon" %in% names(TemperatureMax)){ names(TemperatureMax)[names(TemperatureMax)=="lon"] <- "longitude"}
-  if ("country" %in% colnames(TemperatureMax)) {TemperatureMax <- subset(TemperatureMax,select =-country)}
-  
-  
-  if ("lat" %in% names(TemperatureMin)){ names(TemperatureMin)[names(TemperatureMin)=="lat"] <- "latitude"}
-  if ("lon" %in% names(TemperatureMin)){ names(TemperatureMin)[names(TemperatureMin)=="lon"] <- "longitude"}
-  if ("country" %in% colnames(TemperatureMin)) {TemperatureMin <- subset(TemperatureMin,select =-country)}
-  
-  if ("lat" %in% names(SolarRadiation)){ names(SolarRadiation)[names(SolarRadiation)=="lat"] <- "latitude"}
-  if ("lon" %in% names(SolarRadiation)){ names(SolarRadiation)[names(SolarRadiation)=="lon"] <- "longitude"}
-  if ("country" %in% colnames(SolarRadiation)) {SolarRadiation <- subset(SolarRadiation,select =-country)}
-  #Soil <- na.omit(Soil) #Avoid removing some points due to missing variables (to check if that would make fail the simulations)
-  if ("lat" %in% names(Soil)){ names(Soil)[names(Soil)=="lat"] <- "latitude"}
-  if ("lon" %in% names(Soil)){ names(Soil)[names(Soil)=="lon"] <- "longitude"}
-  Soil <- na.omit(Soil) 
-
-  if(AOI == TRUE){
-    metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "NAME_1", "NAME_2")])
-  }else{
-    metaDataWeather <- as.data.frame(Rainfall[,c("longitude", 'latitude', "startingDate", "endDate", "NAME_1", "NAME_2",
-                                                 "yearPi","yearHi","pl_j","hv_j")])
-  }
-  metaData_Soil <-Soil[,c("longitude", "latitude","NAME_1","NAME_2")]
-
- # Create a general metadata that has unique virtual experiments with unique weather, soil, planting and harvesting date
-  metaData <- merge(metaDataWeather,metaData_Soil)
-
-
-  # Keep all the soil data with rainfall data
-  Soil <- merge(unique(metaData[,c("longitude", "latitude","NAME_1","NAME_2")]),Soil)
-
-
-  #### Keep all the weather data that has soil data ###
-  Rainfall <- merge(metaData,Rainfall)
-  SolarRadiation <- merge(metaData,SolarRadiation)
-  TemperatureMax <- merge(metaData,TemperatureMax)
-  TemperatureMin <- merge(metaData,TemperatureMin)
-  # RelativeHum <- merge(metaData,RelativeHum)
-
-
-  # Set working directory to save the results (weather and soil data in APSIM format)
-  if(AOI == TRUE){
-    path.to.extdata <- paste("/home/jovyan/agwise-cropping-innovation/Data/useCase_", 
-                             country, "_",useCaseName, "/", Crop, "/transform/APSIM/AOI/",varietyid, sep="")
-    }else{
-    path.to.extdata <- paste("/home/jovyan/agwise-cropping-innovation/Data/useCase_", 
-                             country, "_",useCaseName, "/", Crop, "/transform/APSIM/fieldData/",varietyid, sep="")
+  # TODO: Remove this temporary fix once the Forecast data starts in the 1st day of the month
+  if (Forecast) {
+    Rainfall <- fix_forecast_dataset(Rainfall, "Rainfall", fc_year, fc_month)
+    SolarRadiation <- fix_forecast_dataset(SolarRadiation, "SolarRadiation", fc_year, fc_month)
+    TemperatureMax <- fix_forecast_dataset(TemperatureMax, "TemperatureMax", fc_year, fc_month)
+    TemperatureMin <- fix_forecast_dataset(TemperatureMin, "TemperatureMin", fc_year, fc_month)
   }
   
-  if (!dir.exists(file.path(path.to.extdata))){
-    dir.create(file.path(path.to.extdata), recursive = TRUE)
+  
+  # Get metadata
+  metaData <- get_metadata(AOI, Rainfall, Soil)
+  # Keep Soil observations with available Rainfall data
+  Soil <- filter_soil_by_meta(Soil, metaData) 
+
+  if (Forecast) {
+    prior_month_download(
+      project_root, country, useCaseName, Crop, zone, country_code,
+      init_month_user = fc_month, season_length_months, forecast_year = fc_year,
+      py_path = "/home/jovyan/.conda-envs/agwise_fcst/bin/python")
+    
+    prior_month_df <- extract_all_nc_to_df(
+      nc_folder = file.path(project_root, "Data", country_code, "Observation/prior_month/"),
+      aoi_file = paste0(
+        project_root, "/Data/useCase_", country, "_", useCaseName, "/", Crop, 
+        "/data_curation/", country, "/AOI_GPS.RDS"), 
+      forecast_year = forecast_year, init_month_user = init_month_user
+    )
+    
+    # Rename prior month data columns to match Forecast data
+    prior_month_df <- rename_prior_month_columns(prior_month_df)
+    
+    # Filter prior_month_df for province
+    prior_month_df <- filter_prior_month_by_prov(prior_month_df, metaData)
+    
+    # Merge prior month and forecast data
+    Rainfall <- add_prior_month_columns(Rainfall, prior_month_df, "Rainfall")
+    SolarRadiation <- add_prior_month_columns(SolarRadiation, prior_month_df, "SolarRadiation")
+    TemperatureMax <- add_prior_month_columns(TemperatureMax, prior_month_df, "TemperatureMax")
+    TemperatureMin <- add_prior_month_columns(TemperatureMin, prior_month_df, "TemperatureMin")
   }
+  
+  
+  # Keep weather observations with available Soil data
+  Rainfall <- filter_by_metadata(Rainfall, metaData)
+  SolarRadiation <- filter_by_metadata(SolarRadiation, metaData)
+  TemperatureMax <- filter_by_metadata(TemperatureMax, metaData)
+  TemperatureMin <- filter_by_metadata(TemperatureMin, metaData)
 
+  # Working directory for Weather and Soil data in DSSAT format
+  path.to.extdata <- create_extdata_path_APSIM(
+    project_root, country, useCaseName, Crop, varietyid, AOI)
 
+  # Define DSSAT template data (soil and weather files in DSSAT format)
+  path.to.temdata <- create_temdata_path_APSIM(
+    project_root, country, useCaseName, Crop)
+  
   # Define the unique locations to run the experiments in APSIM
-  # when AOI=TRUE it is created weather and soil data by location (unique("longitude", "latitude","NAME_1","NAME_2"))
-  # when AOI=FALSE (when we have observed field data) it is created weather and soil data by trial
-  # (unique(longitude,latitude,"yearPi","yearHi","pl_j","hv_j"))
   
   coords <- metaData
-  # The following lines are removed because metaData is already a subset by zone and level2 (in case they are defined in the arguments)
-  # if(AOI==TRUE){
-  #   coords <- coords[(coords$NAME_1 == zone & coords$NAME_2 == level2), ]
-  # }else{
-  #   coords <- coords[(coords$NAME_1 == zone),]
-  # }
-  
   if(AOI==TRUE){
     coords <- unique(metaData[,c("longitude", "latitude")])
   }else{
     coords <- metaData
   }
 
-  grid <- as.matrix(coords)
-  # Create a list of indices
-  indices <- seq_along(grid[,1])
+  # Sequence of location indices
+  indices <- seq_len(nrow(as.matrix(coords)))
+  n_indices <- length(indices)
   
-  # path.to.extdata=path.to.extdata; Tmaxdata=TemperatureMax; Tmindata=TemperatureMin; Sraddata=SolarRadiation; Rainfalldata=Rainfall;
-  
-  # Previous way of simulating but less efficient  
-  # results <- map(seq_along(grid[,1]), process_grid_element, country=country, path.to.extdata=path.to.extdata,
-  #                path.to.temdata=path.to.temdata, Tmaxdata=TemperatureMax, Tmindata=TemperatureMin, Sraddata=SolarRadiation,
-  #                Rainfalldata=Rainfall, coords=coords, Soil=Soil, AOI=AOI,varietyid=varietyid,zone=zone, level2=level2) %||% print("Progress:")
-
   log_file <- paste(path.to.extdata,"01_progress_log_readGeo_CM_APSIM.txt",sep='/')
   
   if (file.exists(log_file)) {
     file.remove(log_file)
   }
   
-  # Define working directory with template data (soil and weather files in APSIM format as template)
-  path.to.temdata <- paste("/home/jovyan/agwise-cropping-innovation/Data/useCase_", 
-                           country, "_",useCaseName, "/", Crop, "/Landing/APSIM/", sep="")
-  if (!dir.exists(path.to.temdata)){
-    print("Directory with template data (soil and weather files in APSIM) does not exist, please add the template files. Process will stop.")
-    dir.create(file.path(path.to.temdata), recursive = TRUE)
-    return(NULL)
-  }
-  load(paste(path.to.temdata, "my_sol.RData", sep="/"))
+  plan_multisession(per_worker_gb = 3)
   
-  # Set up parallel processing (for more efficient processing)
-  num_cores <- availableCores() -3
-  plan(multisession, workers = num_cores)
-  # plan(sequential)
-  
-  results <- future_lapply(indices, function(i) {
-    # message <- paste("Progress experiment:", i, "out of", length(indices),"for variety", varietyid)
-    # cat(message, "\n", file = log_file, append = TRUE)
-    res <- process_grid_element(i, country=country, path.to.extdata=path.to.extdata,
-                         path.to.temdata=path.to.temdata,
-                         Tmaxdata=TemperatureMax, Tmindata=TemperatureMin,
-                         Sraddata=SolarRadiation, Rainfalldata=Rainfall,
-                         coords=coords, Soil=Soil, AOI=AOI, varietyid=varietyid,
-                         zone=zone, ex_profile = ex_profile, level2=level2, 
-                         Depth = Depth)
-    # message2 <- paste("Finished:", i, "out of", length(indices),"for variety", varietyid)
-    # cat(message2, "\n", file = log_file, append = TRUE)
-  }, future.globals = TRUE)
+  messages_list <- future_lapply(
+    indices,
+    function(i) {
+      start_msg <- paste(
+        "Start experiment:", i, "of", length(indices), "variety", varietyid
+      )
+      
+      process_grid_element(
+        i = i, country = country, path.to.extdata = path.to.extdata,
+        path.to.temdata = path.to.temdata, TemperatureMax = TemperatureMax,
+        TemperatureMin = TemperatureMin, SolarRadiation = SolarRadiation,
+        Rainfall = Rainfall, coords = coords, Soil = Soil, AOI = AOI,
+        varietyid = varietyid, zone = zone, level2 = level2, Depth = Depth
+      )
+      
+      end_msg <- paste(
+        "Finished experiment:", i, "of", length(indices), "variety", varietyid
+      )
+      
+      c(start_msg, end_msg)
+    },
+    future.packages = packages_required,
+    future.seed = TRUE
+  )
   
 }
