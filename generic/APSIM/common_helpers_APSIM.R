@@ -1,29 +1,57 @@
-### Load or install required packages
+# ==============================================================================
+# APSIM Common Helper Functions
+# ==============================================================================
+
+#' Load or install an R package
+#'
+#' Checks if a package is installed in the local environment. If it is missing, 
+#' it installs it automatically. Finally, it loads the package quietly.
+#'
+#' @param pkg Character. The name of the package to load or install.
+#' @return None. Side effect: loads the package into the current environment.
 load_or_install <- function(pkg) {
+  # Check if the package is available in the current namespace
   if (!requireNamespace(pkg, quietly = T)) {
     install.packages(pkg)
   }
+  # Load the package suppressing startup messages to keep the console clean
   suppressPackageStartupMessages(library(pkg, character.only = T))
 }
-
 
 ### Load required packages
 packages_required <- c(
   "chirps", "tidyverse","sf","furrr","future", "future.apply","parallel",
   "sp","apsimx","geodata", "terra", "countrycode","jsonlite")
 
+# Apply the load_or_install function across all required packages silently
 invisible(lapply(packages_required, load_or_install))
 
 
-
-### Common EXTpath
+#' Create external data path for APSIM outputs
+#'
+#' Constructs the directory path where transformed APSIM data and simulation 
+#' results will be stored. It routes the path to an "AOI" or "fieldData" 
+#' subfolder based on the workflow type. Creates the directory if it is missing.
+#'
+#' @param project_root Character. Root directory of the project.
+#' @param country Character. Name of the country.
+#' @param useCaseName Character. Name of the specific use case.
+#' @param Crop Character. Name of the crop being modeled.
+#' @param varietyid Character. Identifier for the specific crop variety.
+#' @param AOI Logical. TRUE if data is for Area of Interest, FALSE for trial sites (default: FALSE).
+#'
+#' @return Character. The constructed directory path.
 create_extdata_path_APSIM <- function(project_root, country, useCaseName, Crop, 
-                                varietyid, AOI = F) {
+                                      varietyid, AOI = F) {
+  # Determine the appropriate subfolder based on the workflow
   subfolder <- ifelse(AOI, "AOI", "fieldData")
+  
+  # Construct the full path string
   path <- file.path(project_root, paste0(
     "useCases/Data/CropModel_Approach/", Crop, "/useCase_", country, "_", 
     useCaseName),"transform/APSIM", subfolder, varietyid)
   
+  # Create the directory structure recursively if it does not already exist
   if (!dir.exists(path)) {
     dir.create(path, recursive = TRUE)
   }
@@ -32,61 +60,62 @@ create_extdata_path_APSIM <- function(project_root, country, useCaseName, Crop,
 }
 
 
-### Common DSSAT template data path
+#' Create template data path for APSIM
+#'
+#' Constructs the path pointing to the "Landing" folder containing necessary 
+#' APSIM template files (e.g., base weather and soil templates).
+#'
+#' @param project_root Character. Root directory of the project.
+#' @param country Character. Name of the country.
+#' @param useCaseName Character. Name of the specific use case.
+#' @param Crop Character. Name of the crop being modeled.
+#'
+#' @return Character. The constructed template directory path.
+#' @export
 create_temdata_path_APSIM <- function(project_root, country, useCaseName, Crop) {
+  # Construct the full path string to the Landing directory
   path.to.temdata <- paste0(project_root,
-    "/useCases/Data/CropModel_Approach/", Crop, "/useCase_", country, "_", 
-    useCaseName,"/Landing/APSIM")
+                            "/useCases/Data/CropModel_Approach/", Crop, "/useCase_", country, "_", 
+                            useCaseName,"/Landing/APSIM")
+  
+  # Halt execution if the template directory is missing, as downstream processes rely on it
   if (!dir.exists(path.to.temdata)) {
-    stop("Directory with DSSAT Template Data (soil and weather files) does ", 
+    stop("Directory with APSIM Template Data (soil and weather files) does ", 
          "not exist, please add the template files. Process will stop.")
   }
-  path.to.temdata
+  
+  return(path.to.temdata)
 }
 
 
-create_dssat_working_path <- function(path.to.extdata, i, zone = NA, level2 = NA) {
-  
-  # sanity check
-  if (!is.na(level2) && is.na(zone)) {
-    stop(
-      "You need to define a zone (administrative level 1) ",
-      "to be able to get data for level 2 (administrative level 2)."
-    )
-  }
-  
-  exte_id <- paste0("EXTE", formatC(as.integer(i), width = 4, flag = "0"))
-  
-  sub_path <- dplyr::case_when(
-    !is.na(zone) & !is.na(level2) ~ file.path(zone, level2, exte_id),
-    !is.na(zone) &  is.na(level2) ~ file.path(zone, exte_id),
-    is.na(zone)  &  is.na(level2) ~ exte_id
-  )
-  
-  working_path <- file.path(path.to.extdata, sub_path)
-  # APSIM does not allow for whitespaces in directories
-  working_path <- gsub(" ", "_", working_path)
-  
-  if (!dir.exists(working_path)) {
-    dir.create(working_path, recursive = TRUE)
-  }
-  
-  working_path
-}
-
-
-### TODO: Check whether this is a good common function or not
+#' Define output path for a specific experiment (EXTE)
+#'
+#' Builds the nested directory structure for a specific experimental run based 
+#' on geographic zoning (administrative levels 1 and 2) and an index ID.
+#'
+#' @param path.to.extdata Character. Base external data directory.
+#' @param i Integer. The index used to generate the EXTE ID (e.g., EXTE0001).
+#' @param zone Character. Administrative level 1 zone name (default: NA).
+#' @param level2 Character. Administrative level 2 zone name (default: NA).
+#'
+#' @return Character. The sanitized output directory path for the experiment.
 define_pathOUT <- function(path.to.extdata, i, zone = NA, level2 = NA) {
+  
+  # Sanity check: Ensure level 1 (zone) is defined before defining level 2
   if (!is.na(level2) && is.na(zone)) {
     stop(
       "You need to define a zone (administrative level 1) ",
       "to get data for level 2 (administrative level 2)."
     )
   }
+  
+  # Format the integer index into a 4-digit padded string (e.g., "EXTE0015")
   exte_id <- paste0(
     "EXTE",
     formatC(as.integer(i), width = 4, flag = "0")
   )
+  
+  # Construct the path based on available administrative levels
   pathOUT <- if (!is.na(zone) && !is.na(level2)) {
     file.path(path.to.extdata, zone, level2, exte_id)
   } else if (!is.na(zone)) {
@@ -94,7 +123,11 @@ define_pathOUT <- function(path.to.extdata, i, zone = NA, level2 = NA) {
   } else {
     file.path(path.to.extdata, exte_id)
   }
-  pathOUT <- gsub(" ", "_", pathOUT)  # APSIM does not allow for whitespaces in paths
+  
+  # Replace whitespaces with underscores, as APSIM struggles with spaces in file paths
+  pathOUT <- gsub(" ", "_", pathOUT)  
+  
+  # Create the target directory if it does not already exist
   if (!dir.exists(pathOUT)) {
     dir.create(pathOUT, recursive = TRUE)
   }
@@ -103,145 +136,47 @@ define_pathOUT <- function(path.to.extdata, i, zone = NA, level2 = NA) {
 }
 
 
-### Produce the AOI_GPS.RDS file
-getGridCoordinates <- function(
-    country, useCaseName, Crop, resltn = 0.05, project_root, provinces = NULL, 
-    district = NULL) { 
-  
-  pathOut <- paste0(project_root, "/Data/useCase_", country, "_", useCaseName,
-                    "/", Crop, "/data_curation/", country, "/")
-  
-  if (!dir.exists(pathOut)) {
-    dir.create(file.path(pathOut), recursive = T)
-  }
-  
-  ### get country abbreviation to used in gdam function
-  # countryCC <- countrycode(country, origin = 'country.name', destination = 'iso3c')
-  
-  ### read the relevant shape file from gdam to be used to crop the global data
-  countrySpVec <- geodata::gadm(country, level = 2, path = '.')
-  
-  if(!is.null(provinces)) {
-    level3 <- countrySpVec[countrySpVec$NAME_1 %in% provinces ]
-  } else if (!is.null(district)) {
-    level3 <- countrySpVec[countrySpVec$NAME_2 %in% district, ]
-  } else {
-    level3 <- countrySpVec
-  }
-  
-  plot(countrySpVec)
-  plot(level3, add = T, col = "green")
-  
-  xmin <- ext(level3)[1]
-  xmax <- ext(level3)[2]
-  ymin <- ext(level3)[3]
-  ymax <- ext(level3)[4]
-  
-  ### define a rectangular area that covers the whole study area (with buffer of 10 km around)
-  lon_coors <- unique(round(seq(xmin - 0.1, xmax + 0.1, by = resltn),
-                            digits = 3))
-  lat_coors <- unique(round(seq(ymin - 0.1, ymax + 0.1, by = resltn),
-                            digits = 3))
-  rect_coord <- as.data.frame(expand.grid(x = lon_coors, y = lat_coors))
-  
-  if(resltn == 0.05) {
-    rect_coord$x <- floor(rect_coord$x * 10) / 10 + ifelse(
-      rect_coord$x - (floor(rect_coord$x * 10) / 10) < 0.05, 0.025, 0.075)
-    rect_coord$y <- floor(rect_coord$y * 10) / 10 + ifelse(
-      abs(rect_coord$y) - (floor(abs(rect_coord$y) * 10) / 10) < 0.05, 0.025, 0.075)
-  }
-  
-  rect_coord <- unique(rect_coord[, c("x", "y")])
-  # } else if (resltn == 0.01) {
-  #   rect_coord$x <- floor(rect_coord$x*100)/100
-  #   rect_coord$y <- floor(rect_coord$y*100)/100
-  #   rect_coord <- unique(rect_coord[,c("x", "y")])
-  # } else {
-  #  names(rect_coord) <- c("x", "y")
-  # }
-  
-  State_LGA <- as.data.frame(raster::extract(countrySpVec, rect_coord))
-  State_LGA$lon <- rect_coord$x
-  State_LGA$lat <- rect_coord$y
-  State_LGA$country <- country
-  
-  State_LGA <- unique(State_LGA[, c("country", "NAME_1", "NAME_2", "lon", "lat")])
-  
-  if(!is.null(provinces)) {
-    State_LGA <- droplevels(State_LGA[State_LGA$NAME_1 %in% provinces, ])
-  } else if (!is.null(district)) {
-    State_LGA <- droplevels(State_LGA[State_LGA$NAME_2 %in% district, ])
-  }
-  
-  State_LGA <- droplevels(State_LGA[!is.na(State_LGA$NAME_2), ])
-  
-  saveRDS(State_LGA, paste0(pathOut, "AOI_GPS.RDS"))
-  
-  return(State_LGA)
-}
-
-
-### Plan multisession
+#' Configure and plan multisession parallel processing
+#'
+#' Dynamically detects the available system RAM (accounting for container limits 
+#' like cgroups) and calculates a safe number of workers for parallel execution 
+#' to prevent out-of-memory crashes.
+#'
+#' @param per_worker_gb Numeric. The estimated RAM requirement (in GB) per parallel worker.
+#'
+#' @return None. Side effect: activates a future::plan multisession strategy.
 plan_multisession <- function(per_worker_gb) {
-  # Detect RAM limits (container-aware)
+  
+  # Step 1: Detect RAM limits (container-aware setup)
   ram_limit_file <- "/sys/fs/cgroup/memory/memory.limit_in_bytes"
+  
   if (file.exists(ram_limit_file)) {
     ram_limit_bytes <- as.numeric(readLines(ram_limit_file))
+    # If the limit is real (not an artificially massive default value), calculate GBs
     if (!is.na(ram_limit_bytes) && ram_limit_bytes < 2 ^ 60) {
       available_ram_gb <- ram_limit_bytes / 1024 ^ 3
     } else {
+      # Fallback to system /proc/meminfo if cgroup limit is unreliable
       available_ram_gb <- as.numeric(system("grep MemAvailable /proc/meminfo | awk '{print $2}'", intern=TRUE)) / 1024 / 1024
     }
   } else {
+    # Fallback to standard /proc/meminfo for non-containerized Linux systems
     available_ram_gb <- as.numeric(system("grep MemAvailable /proc/meminfo | awk '{print $2}'", intern=TRUE)) / 1024 / 1024
   }
   
-  # Compute safe number of workers
+  # Step 2: Compute the safe number of workers
+  # Divide available RAM by expected RAM per worker
   workers <- floor(available_ram_gb / per_worker_gb)
+  
+  # Cap the workers to ensure at least 3 CPU cores are left free for system stability
   workers <- min(workers, availableCores() - 3)
+  
+  # Ensure there is at least 1 worker to execute the tasks
   workers <- max(workers, 1)
   
-  # Activate plan
+  # Step 3: Activate the multisession parallel plan
   suppressWarnings(plan(multisession, workers = workers))
   
+  # Notify the user of the configuration being used
   message("Parallel plan: ", workers, " workers, estimated per-worker RAM: ", per_worker_gb, " GB")
-}
-
-
-### Load inputData. If missing, produce it
-load_or_generate_inputData <- function(country, useCaseName, Crop, project_root,
-                                       inputData = NULL) {
-  
-  if (is.null(inputData)) {
-    
-    dataPath <- paste0(project_root, "/Data/useCase_")
-    inputData_path <- paste0(dataPath, country, "_", useCaseName, "/", Crop,
-                             "/data_curation/", country, "/AOI_GPS.RDS")
-    
-    if (file.exists(inputData_path)) {
-      inputData <- readRDS(inputData_path)
-    } else {
-      getGridCoordinates(country, useCaseName, Crop, project_root, 
-                         resltn = 0.05, provinces = NULL, district = NULL)
-      inputData <- readRDS(inputData_path)
-    }
-  }
-  
-  return(inputData)
-}
-
-
-### Function to write DSSAT progress log files
-write_dssat_log <- function(messages_list, file) {
-  file_path <- file.path(project_root, "Data",
-                         paste0("useCase_", country, "_", useCaseName),
-                         Crop,
-                         file)
-  # Flatten list to single character vector
-  log_lines <- unlist(messages_list)
-  
-  # Write to file
-  writeLines(log_lines, con = file_path)
-  
-  message("Log written to: ", file_path)
 }

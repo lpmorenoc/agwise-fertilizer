@@ -52,5 +52,5 @@ rsconnect/
 *.ipynb_checkpoints/
 
 #Avoid result and transform folders
-*result/
-*transform/
+result/
+transform/

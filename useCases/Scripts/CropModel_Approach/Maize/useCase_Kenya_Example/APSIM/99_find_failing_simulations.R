@@ -6,11 +6,14 @@ library(tidyr)
 library(purrr)
 library(tools)
 
-expfile_name <- "MaizeFactorialAugSep.parquet"
-# expfile_name <- "MaizePeanutIntercrop.parquet"
-# expfile_name <- "MaizePeanutRotation.parquet"
+project_root <- "/home/jovyan/patricia_repos/agwise-fertilizer/useCases"
+clean_expfile_name <- "MaizeFactorialFertiliserMonocrop.parquet"
+country <- "Kenya"
+useCaseName <- "Example"
 
-apsim <- arrow::read_parquet(paste0("~/agwise-cropping-innovation/Data/useCase_Rwanda_RAB/Maize/result/APSIM/AOI/", expfile_name))
+apsim <- arrow::read_parquet(paste(project_root, "/Data/CropModel_Approach/", Crop,
+                              "/useCase_", country, "_", useCaseName,
+                              "/result/APSIM/AOI/", clean_expfile_name, ".parquet", sep = ""))
 
 apsim <- apsim %>%
   dplyr::mutate(
@@ -21,7 +24,7 @@ apsim <- apsim %>%
 all_years <- 2000:2020  # Intercrop & rotation
 # all_years <- 2000:2019  # Monocrop
 
-if (expfile_name == "MaizeFactorialAugSep.parquet"){
+if (expfile_name == "MaizeFactorialFertiliserMonocrop.parquet"){
   n_simulations_per_loc <- length(all_years) * length(unique(apsim$SowDate))
 } else {
   n_simulations_per_loc <- length(all_years) * length(unique(apsim$PSD)) * length(unique(apsim$MSD))

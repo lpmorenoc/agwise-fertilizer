@@ -300,20 +300,28 @@ edit_perm_sowdate <- function(file_in, file_out = file_in, new_dates) {
   
   # Edit Specification (keep the left-hand side exactly, replace right-hand side)
   old_spec <- perm$Children[[sd_i]]$Specification
+  
+  # If old_spec is somehow a vector itself, grab the first element just in case
+  if (length(old_spec) > 1) old_spec <- old_spec[1]
+  
   if (!grepl("=", old_spec, fixed = TRUE)) stop("Unexpected: SowDate$Specification does not contain '='.")
   
   lhs <- sub("=.*$", "", old_spec)              # everything before '='
-  perm$Children[[sd_i]]$Specification <- paste0(lhs, "=", new_dates)
+  
+  # FIX: Collapse new_dates into a single string separated by commas
+  collapsed_dates <- paste(new_dates, collapse = ", ")
+  
+  # Combine LHS with the collapsed dates
+  perm$Children[[sd_i]]$Specification <- paste0(lhs, "=", collapsed_dates)
   
   # Put back and write
   factors$Children[[perm_i]] <- perm
   pd$Children[[fac_i]] <- factors
   x$Children[[exp_i]] <- pd
   
-  writeLines(jsonlite::toJSON(x, auto_unbox = TRUE, pretty = TRUE), file_out)
+  writeLines(jsonlite::toJSON(x, auto_unbox = TRUE, pretty = TRUE, null = "null"), file_out)
   invisible(file_out)
 }
-
 
 edit_perm_fertilise <- function(file_in, file_out = file_in, new_max, new_step) {
   x <- jsonlite::fromJSON(file_in, simplifyVector = FALSE)
@@ -353,7 +361,7 @@ edit_perm_fertilise <- function(file_in, file_out = file_in, new_max, new_step) 
   pd$Children[[fac_i]] <- factors
   x$Children[[exp_i]] <- pd
   
-  writeLines(jsonlite::toJSON(x, auto_unbox = TRUE, pretty = TRUE), file_out)
+  writeLines(jsonlite::toJSON(x, auto_unbox = TRUE, pretty = TRUE,null = "null"), file_out)
   invisible(file_out)
 }
 

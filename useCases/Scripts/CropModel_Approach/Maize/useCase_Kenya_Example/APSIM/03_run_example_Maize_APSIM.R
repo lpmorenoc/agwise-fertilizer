@@ -7,7 +7,7 @@
 
 ## Define experiment ##
 # Experimental file name
-expfile_name <- "MaizeFactorialMonocrop.apsimx"; cropping_system <- "monocrop"
+expfile_name <- "MaizeFactorialFertiliserMonocrop.apsimx"; cropping_system <- "monocrop"
 
 # expfile_name <- "MaizePeanutIntercrop.apsimx"; cropping_system <- "intercrop"
 # expfile_name <- "MaizeSoybeanIntercrop.apsimx"; cropping_system <- "intercrop"
@@ -15,7 +15,7 @@ expfile_name <- "MaizeFactorialMonocrop.apsimx"; cropping_system <- "monocrop"
 # expfile_name <- "MaizePeanutRotation.apsimx"; cropping_system <- "rotation"
 # expfile_name <- "MaizeSoybeanRotation.apsimx"; cropping_system <- "rotation"
 
-project_root <- "/home/jovyan/patricia_repos/agwise-fertilizer/useCases"
+project_root <- "/home/jovyan/patricia_repos/agwise-fertilizer"
 country <- "Kenya"
 useCaseName <- "Example"
 

@@ -8,7 +8,7 @@
 
 ## Define experiment ##
 # Experimental file name
-expfile_name <- "MaizeFactorialMonocrop.apsimx"; cropping_system <- "monocrop"
+expfile_name <- "MaizeFactorialFertiliserMonocrop.apsimx"; cropping_system <- "monocrop"
 
 # expfile_name <- "MaizePeanutIntercrop.apsimx"; cropping_system <- "intercrop"
 # expfile_name <- "MaizeSoybeanIntercrop.apsimx"; cropping_system <- "intercrop"
@@ -16,7 +16,7 @@ expfile_name <- "MaizeFactorialMonocrop.apsimx"; cropping_system <- "monocrop"
 # expfile_name <- "MaizePeanutRotation.apsimx"; cropping_system <- "rotation"
 # expfile_name <- "MaizeSoybeanRotation.apsimx"; cropping_system <- "rotation"
 
-project_root <- "/home/jovyan/patricia_repos/agwise-fertilizer/useCases"
+project_root <- "/home/jovyan/patricia_repos/agwise-fertilizer"
 country <- "Kenya"
 useCaseName <- "Example"
 
@@ -112,6 +112,7 @@ AOI <- TRUE
 Plot <- TRUE
 justplot <- FALSE
 
+project_root <- "/home/jovyan/patricia_repos/agwise-fertilizer"
 season <- 1
 short_variety = "Early"  # Name of the first variety
 medium_variety = "Early"  # Name of the second variety
@@ -122,9 +123,9 @@ long_variety = "Early"  # Name of the third variety
 # long_variety = "Dekalb_XL82"  # Name of the third variety
 
 script_to_source <- switch(cropping_system,
-                           monocrop = "/home/jovyan/agwise-cropping-innovation/Scripts/APSIM/generic/06_MONOCROP_APSIM_summary_ONI.R",
-                           intercrop = "/home/jovyan/agwise-cropping-innovation/Scripts/APSIM/generic/06_INTERCROP_APSIM_summary_ONI.R",
-                           rotation = "/home/jovyan/agwise-cropping-innovation/Scripts/APSIM/generic/06_ROTATION_APSIM_summary_ONI.R")
+                           monocrop = "/home/jovyan/patricia_repos/agwise-fertilizer/generic/APSIM/06_MONOCROP_APSIM_summary_ONI.R",
+                           intercrop = "/home/jovyan/patricia_repos/agwise-fertilizer/generic/APSIM/06_INTERCROP_APSIM_summary_ONI.R",
+                           rotation = "/home/jovyan/patricia_repos/agwise-fertilizer/generic/APSIM/06_ROTATION_APSIM_summary_ONI.R")
 
 source(script_to_source)
 
@@ -134,7 +135,8 @@ arguments <- switch(cropping_system,
                       expfile_name = expfile_name, AOI = AOI, season = season,
                       Plot = Plot, short_variety = short_variety,
                       medium_variety = medium_variety, 
-                      long_variety = long_variety, justplot = justplot
+                      long_variety = long_variety, justplot = justplot,
+                      project_root = project_root 
                     ),
                     intercrop = list(
                       country = country, useCaseName = useCaseName,

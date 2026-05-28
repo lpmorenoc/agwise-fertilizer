@@ -56,26 +56,16 @@ prov <- "Kisumu"
 level2 <- NA
 AOI <- TRUE
 pathIn_zone <- T
-season <- 1
 create_RS_schedule <- T
 Forecast <- F
 Soil_source <- "ISRIC"
-ID <- "TLID"
 fertilizer <- TRUE
-fert_factorial <- FALSE
-fert_grid_RS <- FALSE
-index_soilwat <- 1
 rs_schedule_df <- NULL
-fc_month <- NA
 fc_year <- NA
-Planting_month_date <- NULL
-Harvest_month_date <- NULL
 fertilizer_param <- c(100,25)
 
 
-path.to.temdata <- paste0(project_root,
-                          "/useCases/Data/CropModel_Approach/", Crop, "/useCase_", country, "_", 
-                          useCaseName,"/Landing/APSIM")
+path.to.temdata <- create_temdata_path_APSIM(project_root, country, useCaseName, Crop)
 
 # Input file (.csv) for fertilizer, planting dates, varieties, ...
 temp_file <- "planting_date_rec_template.csv"
@@ -103,24 +93,20 @@ arguments <- switch(cropping_system,
                       country = country, useCaseName = useCaseName, 
                       Crop = main_Crop, project_root = project_root,
                       AOI = AOI, filex_temp = filex_temp,
-                      Planting_month_date = Planting_month_date,
-                      Harvest_month_date = Harvest_month_date, ID = ID, 
-                      season = season, varietyid = main_Crop_varietyid,
+                      varietyid = main_Crop_varietyid,
                       zone = NULL, level2 = level2, 
-                      fertilizer = fertilizer,  fert_factorial = fert_factorial,
+                      fertilizer = fertilizer,  
                       fertilizer_param =fertilizer_param,
-                      template_df = template_df,  fert_grid_RS = fert_grid_RS, 
-                      index_soilwat = index_soilwat,
-                      pathIn_zone = pathIn_zone,  rs_schedule_df = rs_schedule_df, 
+                      template_df = template_df, rs_schedule_df = rs_schedule_df, 
                       Forecast = Forecast, create_RS_schedule = create_RS_schedule, 
-                      fc_month = fc_month,fc_year = fc_year, clck = clck, rep = rep, 
+                      fc_year = fc_year, clck = clck, rep = rep, 
                       fix_crop_or_soil_parm = fix_crop_or_soil_parm,
                       Soil_source = Soil_source, datasourcing_path = datasourcing_path
                     ),
                     intercrop = list(
                       country = country, useCaseName = useCaseName, 
                       Crops = Crops, AOI = AOI, season = season, zone = NULL,
-                      level2 = level2, pathIn_zone = pathIn_zone, 
+                      level2 = level2, 
                       filex_temp = filex_temp, clck = clck, 
                       varietyids = varietyids, rep = rep, 
                       fix_crop_or_soil_parm = fix_crop_or_soil_parm

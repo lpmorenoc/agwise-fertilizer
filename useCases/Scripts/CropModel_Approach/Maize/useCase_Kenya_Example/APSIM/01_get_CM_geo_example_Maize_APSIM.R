@@ -73,4 +73,4 @@ cat(duration, "\n", file = log_file, append = TRUE)
 
 #### Checking if the files make sense ####
 
-load("/home/jovyan/patricia_repos/agwise-fertilizer/useCases/Data/CropModel_Approach/Maize/useCase_Kenya_Example/transform/APSIM/AOI/Early/Kisumu/EXTE0001/my_sol_1.RData")
+#load("/home/jovyan/patricia_repos/agwise-fertilizer/useCases/Data/CropModel_Approach/Maize/useCase_Kenya_Example/transform/APSIM/AOI/Early/Kisumu/EXTE0001/my_sol_1.RData")

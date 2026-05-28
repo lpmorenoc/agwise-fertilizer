@@ -6,8 +6,8 @@
 # (2) To classify aggregated outputs from APSIM simulation in terms of ONI index: Nina, Nino and Neutral year
 # It provides also graphics of aggregated APSIM output according to the ONI
 # For more info regarding ONI : https://origin.cpc.ncep.noaa.gov/products/analysis_monitoring/ensostuff/ONI_v5.php
-# Authors : P.Moreno, E.Bendito Garcia, L.Leroux
-# Credentials : EiA, 2024
+# Authors : P.Moreno Cadena, A. Carmona Cabrero, E.Bendito Garcia, L.Leroux
+# Credentials : AgWise, 2026
 
 #### Getting started #######
 
@@ -208,13 +208,16 @@ calculate_mode <- function(x) {
 
 get_ONI <- function(country, useCaseName, Crop, expfile_name, 
                     AOI=TRUE, season, Plot=TRUE, short_variety, 
-                    medium_variety, long_variety, justplot=FALSE){
+                    medium_variety, long_variety, justplot=FALSE, project_root){
   
+
   ## 3.1. Creating a directory to store output table and graphics ####
   if (AOI == TRUE){
-    pathOut <- paste0("/home/jovyan/agwise-cropping-innovation/Data/useCase_", country, "_",useCaseName,"/",Crop,"/result/APSIM/AOI/", sep="")
+    pathOut <- paste0(project_root, "/useCases/Data/CropModel_Approach/", Crop,
+                      "/useCase_", country, "_",useCaseName,"/result/APSIM/AOI/", sep="")
   } else {
-    pathOut <- paste0("/home/jovyan/agwise-cropping-innovation/Data/useCase_", country, "_",useCaseName,"/",Crop,"/result/APSIM/fieldData/",  sep="")
+    pathOut <- paste0(project_root, "/useCases/Data/CropModel_Approach/", Crop,
+                      "/useCase_", country, "_",useCaseName,"/result/APSIM/fieldData/",  sep="")
   }
   
   if (justplot == FALSE) {
@@ -298,18 +301,9 @@ get_ONI <- function(country, useCaseName, Crop, expfile_name,
     # Ranges of date of analysis
     apsim <- apsim %>%
       dplyr::mutate(
-        # Extract day and month from SowDate
-        sow_day = as.integer(substr(SowDate, 1, 2)),
-        sow_month = match(tolower(substr(SowDate, 4, 6)), tolower(month.abb)),
-        
-        # Compute planting year
-        planting_year = ifelse(sow_month > month(as.Date(Clock.Today)), 
-                               year(as.Date(Clock.Today)) - 1, 
-                               year(as.Date(Clock.Today))),
-        
         # Full planting date
-        PDAT = as.Date(paste(planting_year, sow_month, sow_day, sep = "-"))
-      ) %>% select(!c(sow_day, sow_month, planting_year))
+        PDAT = as.Date(SowDate)
+      ) 
     
     date_ranges <- data.frame (
       initial_date = apsim$PDAT,
@@ -354,7 +348,7 @@ get_ONI <- function(country, useCaseName, Crop, expfile_name,
     
     #colnames(apsim_oni) <- c(colnames(apsim_oni)[-27],'med_variable')
     
-    ## 3.4. Classify tbe ONI into three classes (now using the categorical classification directly) ####
+    ##### 3.4. Classify tbe ONI into three classes (now using the categorical classification directly) ####
     # med ONI > 0.5, Nino, med ONI < -0.5 Nina, -0.5 > ONI > 0.5 Neutral 
     # 
     #   apsim_oni$ENSO <- ifelse(apsim_oni$med_variable > 0.5,"Niño",
@@ -408,7 +402,7 @@ get_ONI <- function(country, useCaseName, Crop, expfile_name,
   }
   
   
-  ## 3.5. Basic plots ####
+  ### 3.5. Basic plots ####
   if (Plot == TRUE){
     ### 3.5.1. Global plot ####
     #apsim_oni <- na.omit(apsim_oni)
@@ -746,7 +740,7 @@ get_ONI <- function(country, useCaseName, Crop, expfile_name,
 # 
 # get_ONI(country, useCaseName, Crop, Extent, season, Plot)
 # 04_merge_APSIM_output(country, useCaseName, Crop, Extent, season)
-# Meand and SEM plot
+# Mean and SEM plot
 
 
 
