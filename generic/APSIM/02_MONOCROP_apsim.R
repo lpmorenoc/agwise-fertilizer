@@ -141,7 +141,7 @@ process_grid_element_experiment <- function(i, path.to.extdata, path.to.temdata,
   )
   
   # If fertilizer management is enabled, update fertilization parameters
-  if (fertilizer) {
+  if (fertilizer && !is.null(fertilizer_param)) {
     edit_perm_fertilise(
       file_in = filex_temp, 
       file_out = filex_temp, 
