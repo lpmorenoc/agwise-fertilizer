@@ -302,7 +302,7 @@ get_ONI <- function(country, useCaseName, Crop, expfile_name,
     apsim <- apsim %>%
       dplyr::mutate(
         # Full planting date
-        PDAT = as.Date(SowDate)
+        PDAT = as.Date(Maize.SowingDate)
       ) 
     
     date_ranges <- data.frame (
@@ -526,10 +526,10 @@ get_ONI <- function(country, useCaseName, Crop, expfile_name,
     ## 3.6. Maps ####
     
     # Read the relevant shape file from gdam to be used to crop the global data
-    countryShp <- geodata::gadm(country, level = 1, path=paste0("/home/jovyan/agwise-cropping-innovation/Data/useCase_", country, "_",useCaseName,"/",Crop,"/result/APSIM/", sep=""))
+    countryShp <- geodata::gadm(country, level = 1, path=pathOut)
     country_sf <- sf::st_as_sf(countryShp)
     
-    countryShp0 <- geodata::gadm(country, level = 0, path=paste0("/home/jovyan/agwise-cropping-innovation/Data/useCase_", country, "_",useCaseName,"/",Crop,"/result/APSIM/", sep=""))
+    countryShp0 <- geodata::gadm(country, level = 0, path=pathOut)
     country_sf0 <- sf::st_as_sf(countryShp0)
     
     

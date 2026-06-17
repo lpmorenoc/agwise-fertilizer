@@ -8,7 +8,7 @@
 
 ## Define experiment ##
 # Experimental file name
-expfile_name <- "MaizeFactorialFertiliserMonocrop.apsimx"; cropping_system <- "monocrop"
+expfile_name <- "MaizeFactorialMonocropMultipleApplications.apsimx"; cropping_system <- "monocrop"
 
 # expfile_name <- "MaizePeanutIntercrop.apsimx"; cropping_system <- "intercrop"
 # expfile_name <- "MaizeSoybeanIntercrop.apsimx"; cropping_system <- "intercrop"

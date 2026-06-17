@@ -5,7 +5,7 @@
 # This script allows the creation of experimental files up to administrative level 2
 # Authors : P.Moreno-Cadena, A. Carmona-Cabrero, S. Mkuhlani
 # Credentials : AgWise, 2026
-# Last modified May 08, 2026 
+# Last modified June 08, 2026 
 
 
 #################################################################################################################
@@ -59,11 +59,17 @@ process_grid_element_experiment <- function(i, path.to.extdata, path.to.temdata,
                                             varietyid, rep, fix_crop_or_soil_parm,
                                             plant_dates = NULL,
                                             fertilizer = FALSE,
-                                            fertilizer_param) {
+                                            fertilizer_param,
+                                            template_df,
+                                            fc_year) {
   
   # If planting dates are not provided, extract them from coords
   if (is.null(plant_dates) && !is.null(coords)) {
-    plant_dates <- coords$planting_dates[[i]]
+    if (!is.na(fc_year)){
+      plant_dates <- coords$planting_dates[[i]]
+    }else{
+      plant_dates <- tolower(format(as.Date(coords$planting_dates[[i]]), "%d-%b"))
+    }
   }
   
   # Stop execution if planting dates are missing
@@ -148,6 +154,18 @@ process_grid_element_experiment <- function(i, path.to.extdata, path.to.temdata,
       new_max = fertilizer_param[1], 
       new_step = fertilizer_param[2])
   }
+  
+  # If fertilizer management is enabled, but the fertilizer rates are coming from
+  # the template table for each pixel
+  
+  if (fertilizer && is.null(fertilizer_param)) {
+    modify_apsim_fertilizer(apsimx_file = filex_temp, 
+                            template_df = template_df, 
+                            target_lon = coords$longitude[i], 
+                            target_lat = coords$latitude[i], 
+                            output_file = filex_temp) 
+      
+  }
 }
 
 
@@ -218,10 +236,10 @@ apsimSpatialFactorial <- function(country, useCaseName, Crop, project_root, AOI 
   if (create_RS_schedule) {
     if (Forecast) {
       rs_schedule_df <- create_rs_schedule(template_df = template_df, fc_year = fc_year)
-      template_df <- template_df %>% select(-c(q25, q50, q75))  # remove quantiles
+      #template_df <- template_df %>% select(-c(q25, q50, q75))  # remove quantiles
     } else {
       rs_schedule_df <- create_rs_schedule(template_df = template_df)
-      template_df <- template_df %>% select(-c(q25, q50, q75))
+      #template_df <- template_df %>% select(-c(q25, q50, q75))
     }
   }  
   
@@ -237,9 +255,9 @@ apsimSpatialFactorial <- function(country, useCaseName, Crop, project_root, AOI 
                                      rs_schedule_df, datasourcing_path)
     
     # If not forecasting, set placeholder year
-    if (!Forecast) {
-      fc_year = 2000
-    }
+    # if (!Forecast) {
+    #   fc_year = 2000
+    # }
     
   } else {
     # Alternative workflow: use GPS field data
@@ -288,7 +306,9 @@ apsimSpatialFactorial <- function(country, useCaseName, Crop, project_root, AOI 
                                       fix_crop_or_soil_parm = fix_crop_or_soil_parm,
                                       plant_dates = NULL,
                                       fertilizer = fertilizer,
-                                      fertilizer_param = fertilizer_param)
+                                      fertilizer_param = fertilizer_param,
+                                      template_df = template_df,
+                                      fc_year = fc_year)
       
       # End message
       end_msg <- paste("Finished experiment:", i, "of", length(indices), "variety", varietyid)

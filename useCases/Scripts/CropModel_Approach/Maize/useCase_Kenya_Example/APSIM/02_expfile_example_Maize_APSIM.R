@@ -6,7 +6,7 @@
 
 ## Define experiment ##
 # Experimental file name
-filex_temp<- "MaizeFactorialFertiliserMonocrop.apsimx"; cropping_system <- "monocrop"
+filex_temp<- "MaizeFactorialMonocropMultipleApplications.apsimx"; cropping_system <- "monocrop"
 
 # expfile_name <- "MaizePeanutIntercrop.apsimx"; cropping_system <- "intercrop"
 # expfile_name <- "MaizeSoybeanIntercrop.apsimx"; cropping_system <- "intercrop"
@@ -62,14 +62,13 @@ Soil_source <- "ISRIC"
 fertilizer <- TRUE
 rs_schedule_df <- NULL
 fc_year <- NA
-fertilizer_param <- c(100,25)
+#fertilizer_param <- c(100,25)
+fertilizer_param <- NULL
 
-
-path.to.temdata <- create_temdata_path_APSIM(project_root, country, useCaseName, Crop)
 
 # Input file (.csv) for fertilizer, planting dates, varieties, ...
-temp_file <- "planting_date_rec_template.csv"
-template_df <- read.csv(file.path(path.to.temdata, temp_file))
+temp_file <- "Fertilizer_recommendation_template_V3.csv"
+
 
 ################################################################################
 ## DO NOT EDIT BELOW THIS LINE — Core processing code                         ##
@@ -82,6 +81,9 @@ script_to_source <- switch(cropping_system,
                            rotation = "/home/jovyan/patricia_repos/agwise-fertilizer/generic/APSIM/02_ROTATION_apsim.R")  #I need to edit these source files
 
 source(script_to_source)
+
+path.to.temdata <- create_temdata_path_APSIM(project_root, country, useCaseName, Crop)
+template_df <- read.csv(file.path(path.to.temdata, temp_file))
 
 produce_apsim_file <- switch(cropping_system,
                              monocrop = apsimSpatialFactorial,
